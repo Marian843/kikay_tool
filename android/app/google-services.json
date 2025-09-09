@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1092747732398",
+    "project_id": "kikay-c23f6",
+    "storage_bucket": "kikay-c23f6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1092747732398:android:6884446adb8848ebf0d43f",
+        "android_client_info": {
+          "package_name": "com.example.kikay"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBL77duxr08Ow_ArQyqya5EDno5wFI-Dq4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
