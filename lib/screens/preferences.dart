@@ -1,6 +1,78 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+// Data class to hold user preferences
+class UserPreferences {
+  // Base
+  bool foundation;
+  bool concealer;
+  bool powder;
+  bool bbCream;
+
+  // Cheeks
+  bool blush;
+  bool highlighter;
+  bool bronzer;
+
+  // Eyes
+  bool eyeshadow;
+  bool eyeliner;
+  bool mascara;
+
+  // Lips
+  bool lipstick;
+  bool lipTint;
+  bool lipOil;
+  bool lipGloss;
+
+  UserPreferences({
+    this.foundation = false,
+    this.concealer = false,
+    this.powder = false,
+    this.bbCream = false,
+    this.blush = false,
+    this.highlighter = false,
+    this.bronzer = false,
+    this.eyeshadow = false,
+    this.eyeliner = false,
+    this.mascara = false,
+    this.lipstick = false,
+    this.lipTint = false,
+    this.lipOil = false,
+    this.lipGloss = false,
+  });
+
+  // Get selected items as a map for easier passing
+  Map<String, bool> toMap() {
+    return {
+      'foundation': foundation,
+      'concealer': concealer,
+      'powder': powder,
+      'bbCream': bbCream,
+      'blush': blush,
+      'highlighter': highlighter,
+      'bronzer': bronzer,
+      'eyeshadow': eyeshadow,
+      'eyeliner': eyeliner,
+      'mascara': mascara,
+      'lipstick': lipstick,
+      'lipTint': lipTint,
+      'lipOil': lipOil,
+      'lipGloss': lipGloss,
+    };
+  }
+
+  // Get only selected items
+  List<String> getSelectedItems() {
+    final selected = <String>[];
+    final map = toMap();
+    map.forEach((key, value) {
+      if (value) selected.add(key);
+    });
+    return selected;
+  }
+}
+
 class PreferencesPage extends StatefulWidget {
   final VoidCallback? onPressed;
 
@@ -11,27 +83,8 @@ class PreferencesPage extends StatefulWidget {
 }
 
 class _PreferencesPageState extends State<PreferencesPage> {
-  // Base
-  bool foundation = false;
-  bool concealer = false;
-  bool powder = false;
-  bool bbCream = false;
-
-  // Cheeks
-  bool blush = false;
-  bool highlighter = false;
-  bool bronzer = false;
-
-  // Eyes
-  bool eyeshadow = false;
-  bool eyeliner = false;
-  bool mascara = false;
-
-  // Lips
-  bool lipstick = false;
-  bool lipTint = false;
-  bool lipOil = false;
-  bool lipGloss = false;
+  // User preferences
+  final UserPreferences _preferences = UserPreferences();
 
   Widget buildCheckbox(String label, bool value, Function(bool?) onChanged) {
     return Row(
@@ -76,6 +129,13 @@ class _PreferencesPageState extends State<PreferencesPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Get the image path from the route arguments
+    final imagePath = ModalRoute.of(context)?.settings.arguments as String?;
+
+    print('PreferencesPage build called');
+    print('Image path: $imagePath');
+    print('Preferences: ${_preferences.toMap()}');
+
     return Scaffold(
       backgroundColor: const Color(0xFFF4BBD3),
       body: SafeArea(
@@ -130,79 +190,79 @@ class _PreferencesPageState extends State<PreferencesPage> {
               buildCategory('Base Makeup', [
                 buildCheckbox(
                   'Foundation',
-                  foundation,
-                  (v) => setState(() => foundation = v!),
+                  _preferences.foundation,
+                  (v) => setState(() => _preferences.foundation = v!),
                 ),
                 buildCheckbox(
                   'Concealer',
-                  concealer,
-                  (v) => setState(() => concealer = v!),
+                  _preferences.concealer,
+                  (v) => setState(() => _preferences.concealer = v!),
                 ),
                 buildCheckbox(
                   'Powder',
-                  powder,
-                  (v) => setState(() => powder = v!),
+                  _preferences.powder,
+                  (v) => setState(() => _preferences.powder = v!),
                 ),
                 buildCheckbox(
                   'BB Cream',
-                  bbCream,
-                  (v) => setState(() => bbCream = v!),
+                  _preferences.bbCream,
+                  (v) => setState(() => _preferences.bbCream = v!),
                 ),
               ]),
               buildCategory('Cheeks', [
                 buildCheckbox(
                   'Blush',
-                  blush,
-                  (v) => setState(() => blush = v!),
+                  _preferences.blush,
+                  (v) => setState(() => _preferences.blush = v!),
                 ),
                 buildCheckbox(
                   'Highlighter',
-                  highlighter,
-                  (v) => setState(() => highlighter = v!),
+                  _preferences.highlighter,
+                  (v) => setState(() => _preferences.highlighter = v!),
                 ),
                 buildCheckbox(
                   'Bronzer',
-                  bronzer,
-                  (v) => setState(() => bronzer = v!),
+                  _preferences.bronzer,
+                  (v) => setState(() => _preferences.bronzer = v!),
                 ),
               ]),
               buildCategory('Eyes', [
                 buildCheckbox(
                   'Eyeshadow',
-                  eyeshadow,
-                  (v) => setState(() => eyeshadow = v!),
+                  _preferences.eyeshadow,
+                  (v) => setState(() => _preferences.eyeshadow = v!),
                 ),
                 buildCheckbox(
                   'Eyeliner',
-                  eyeliner,
-                  (v) => setState(() => eyeliner = v!),
+                  _preferences.eyeliner,
+                  (v) => setState(() => _preferences.eyeliner = v!),
                 ),
                 buildCheckbox(
                   'Mascara',
-                  mascara,
-                  (v) => setState(() => mascara = v!),
+                  _preferences.mascara,
+                  (v) => setState(() => _preferences.mascara = v!),
                 ),
               ]),
               buildCategory('Lips', [
                 buildCheckbox(
                   'Lipstick',
-                  lipstick,
-                  (v) => setState(() => lipstick = v!),
+                  _preferences.lipstick,
+                  (v) => setState(() => _preferences.lipstick = v!),
                 ),
                 buildCheckbox(
                   'Lip Tint',
-                  lipTint,
-                  (v) => setState(() => lipTint = v!),
+                  _preferences.lipTint,
+                  (v) => setState(() => _preferences.lipTint = v!),
                 ),
                 buildCheckbox(
                   'Lip Oil',
-                  lipOil,
-                  (v) => setState(() => lipOil = v!),
+                  _preferences.lipOil,
+                  (v) => setState(() => _preferences.lipOil = v!),
                 ),
                 buildCheckbox(
                   'Lip Gloss',
-                  lipGloss,
-                  (v) => setState(() => lipGloss = v!),
+                  _preferences.lipGloss,
+                  (v) => setState(() => _preferences.lipGloss = v!),
                 ),
               ]),
 
@@ -229,14 +289,21 @@ class _PreferencesPageState extends State<PreferencesPage> {
               ElevatedButton(
                 onPressed: widget.onPressed ??
                     () {
+                      print('Discover Your Best Shades button pressed');
+                      print('Current preferences: ${_preferences.toMap()}');
+
+                      // Get selected preferences
+                      final selectedPrefs = _preferences.toMap();
+                      print('Selected preferences: $selectedPrefs');
+
                       Navigator.pushNamed(
                         context,
                         '/output',
                         arguments: {
-                          'imagePath':
-                              'path_to_your_image', // Replace with actual path
-                          'skinTone': 'Fair', // Replace with actual skin tone
-                          'undertone': 'Warm', // Replace with actual undertone
+                          'imagePath': imagePath,
+                          'skinTone': 'Fair',
+                          'undertone': 'Neutral',
+                          'preferences': selectedPrefs, // Pass preferences
                         },
                       );
                     },
