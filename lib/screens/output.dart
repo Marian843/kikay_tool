@@ -38,14 +38,14 @@ class _ImageResultPageState extends State<ImageResultPage> {
   Future<void> _analyzeImage() async {
     try {
       print('Starting image analysis...');
-      
+
       // Debug: Print all widget properties
       print('Image path: ${widget.imagePath}');
       print('Skin tone: ${widget.skinTone}');
       print('Undertone: ${widget.undertone}');
       print('Preferences: ${widget.preferences}');
       print('Preferences type: ${widget.preferences?.runtimeType}');
-      
+
       // Additional debugging
       if (widget.preferences != null) {
         print('Preferences keys: ${widget.preferences!.keys}');
@@ -108,7 +108,7 @@ class _ImageResultPageState extends State<ImageResultPage> {
       print('No preferences data received');
       return [];
     }
-    
+
     final selected = <String>[];
     widget.preferences!.forEach((key, value) {
       if (value) selected.add(key);
@@ -121,7 +121,7 @@ class _ImageResultPageState extends State<ImageResultPage> {
   List<Widget> _buildProductSections() {
     final selected = _getSelectedPreferences();
     final sections = <Widget>[];
-    
+
     // Define all possible product sections
     final allSections = {
       'concealer': 'Concealer Recommendation/s',
@@ -139,7 +139,7 @@ class _ImageResultPageState extends State<ImageResultPage> {
       'lipOil': 'Lip Oil Recommendation/s',
       'lipGloss': 'Lip Gloss Recommendation/s',
     };
-    
+
     // Add sections only for selected preferences
     allSections.forEach((key, title) {
       if (selected.contains(key) || selected.isEmpty) {
@@ -150,13 +150,15 @@ class _ImageResultPageState extends State<ImageResultPage> {
             child: _buildProductSection(
               context,
               title: title,
-              route: key == 'concealer' ? '/productinfo' : null, // Only link concealer to product info
+              route: key == 'concealer'
+                  ? '/productinfo'
+                  : null, // Only link concealer to product info
             ),
           ),
         );
       }
     });
-    
+
     return sections;
   }
 

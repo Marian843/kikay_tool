@@ -131,10 +131,10 @@ class _PreferencesPageState extends State<PreferencesPage> {
   Widget build(BuildContext context) {
     // Get the image path from the route arguments
     final imagePath = ModalRoute.of(context)?.settings.arguments as String?;
-
+    
     print('PreferencesPage build called');
     print('Image path: $imagePath');
-    print('Preferences: ${_preferences.toMap()}');
+    print('Current preferences: ${_preferences.toMap()}');
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4BBD3),
@@ -290,12 +290,16 @@ class _PreferencesPageState extends State<PreferencesPage> {
                 onPressed: widget.onPressed ??
                     () {
                       print('Discover Your Best Shades button pressed');
-                      print('Current preferences: ${_preferences.toMap()}');
-
-                      // Get selected preferences
-                      final selectedPrefs = _preferences.toMap();
-                      print('Selected preferences: $selectedPrefs');
-
+                      print('Final preferences before navigation: ${_preferences.toMap()}');
+                      
+                      // Count selected items
+                      int selectedCount = 0;
+                      final prefsMap = _preferences.toMap();
+                      prefsMap.forEach((key, value) {
+                        if (value) selectedCount++;
+                      });
+                      print('Number of selected preferences: $selectedCount');
+                      
                       Navigator.pushNamed(
                         context,
                         '/output',
@@ -303,7 +307,7 @@ class _PreferencesPageState extends State<PreferencesPage> {
                           'imagePath': imagePath,
                           'skinTone': 'Fair',
                           'undertone': 'Neutral',
-                          'preferences': selectedPrefs, // Pass preferences
+                          'preferences': prefsMap, // Pass preferences
                         },
                       );
                     },
