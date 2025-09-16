@@ -227,8 +227,7 @@ class _PreferencesPageState extends State<PreferencesPage> {
               const SizedBox(height: 25),
 
               ElevatedButton(
-                onPressed:
-                    widget.onPressed ??
+                onPressed: widget.onPressed ??
                     () {
                       Navigator.pushNamed(
                         context,
