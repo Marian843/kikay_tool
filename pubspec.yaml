@@ -74,6 +74,7 @@ flutter:
   assets:
     - assets/models/mobilenet_skintone_final.tflite
     - assets/models/mobilenet_undertone_final.tflite
+    - assets/
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
