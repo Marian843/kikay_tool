@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:kikay/services/model_service.dart';
+import 'package:kikay/services/makeup_service.dart';
+import 'package:kikay/models/makeup_product.dart';
 
 class ImageResultPage extends StatefulWidget {
   final String imagePath;
@@ -28,6 +30,9 @@ class _ImageResultPageState extends State<ImageResultPage> {
   String? _predictedUndertone;
   bool _isLoading = true;
   String _errorMessage = '';
+  final MakeupService _makeupService = MakeupService();
+  Map<String, List<MakeupProduct>> _recommendations = {};
+  bool _isLoadingRecommendations = false;
 
   @override
   void initState() {
@@ -74,9 +79,13 @@ class _ImageResultPageState extends State<ImageResultPage> {
       final undertonePrediction =
           widget.modelService.predictUnderTone(File(widget.imagePath));
 
+      String finalSkinTone = widget.skinTone;
+      String finalUndertone = widget.undertone;
+
       if (skinTonePrediction != null) {
         _predictedSkinTone =
             widget.modelService.getSkinToneLabel(skinTonePrediction);
+        finalSkinTone = _predictedSkinTone!;
         print('Skin tone prediction: $_predictedSkinTone');
       } else {
         print('Skin tone prediction failed');
@@ -85,9 +94,15 @@ class _ImageResultPageState extends State<ImageResultPage> {
       if (undertonePrediction != null) {
         _predictedUndertone =
             widget.modelService.getUnderToneLabel(undertonePrediction);
+        finalUndertone = _predictedUndertone!;
         print('Undertone prediction: $_predictedUndertone');
       } else {
         print('Undertone prediction failed');
+      }
+
+      // Fetch makeup recommendations after analysis
+      if (widget.preferences != null) {
+        await _fetchRecommendations(finalSkinTone, finalUndertone);
       }
 
       setState(() {
@@ -102,61 +117,87 @@ class _ImageResultPageState extends State<ImageResultPage> {
     }
   }
 
-  // Get selected preferences
-  List<String> _getSelectedPreferences() {
-    if (widget.preferences == null) {
-      print('No preferences data received');
-      return [];
-    }
+  Future<void> _fetchRecommendations(String skinTone, String undertone) async {
+    if (widget.preferences == null) return;
 
-    final selected = <String>[];
-    widget.preferences!.forEach((key, value) {
-      if (value) selected.add(key);
+    setState(() {
+      _isLoadingRecommendations = true;
     });
-    print('Selected preferences: $selected');
-    return selected;
+
+    try {
+      // Use the actual detected values, not the initial widget values
+      final actualSkinTone = _predictedSkinTone ?? widget.skinTone;
+      final actualUndertone = _predictedUndertone ?? widget.undertone;
+
+      print(
+          'Using actual values - Skin Tone: $actualSkinTone, Undertone: $actualUndertone');
+
+      final recommendations = await _makeupService.getRecommendedProducts(
+        preferences: widget.preferences!,
+        skinTone: actualSkinTone,
+        undertone: actualUndertone,
+        limit: 3, // Get 3 products per category
+      );
+
+      setState(() {
+        _recommendations = recommendations;
+        _isLoadingRecommendations = false;
+      });
+
+      print('Fetched ${recommendations.length} categories of recommendations');
+    } catch (e) {
+      print('Error fetching recommendations: $e');
+      setState(() {
+        _isLoadingRecommendations = false;
+      });
+    }
   }
 
-  // Build product sections based on selected preferences
+  // Build product sections based on recommendations
   List<Widget> _buildProductSections() {
-    final selected = _getSelectedPreferences();
-    final sections = <Widget>[];
+    if (_isLoadingRecommendations) {
+      return [
+        const Center(
+          child: Padding(
+            padding: EdgeInsets.all(20.0),
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      ];
+    }
 
-    // Define all possible product sections
-    final allSections = {
-      'concealer': 'Concealer Recommendation/s',
-      'foundation': 'Foundation Recommendation/s',
-      'powder': 'Powder Recommendation/s',
-      'bbCream': 'BB Cream Recommendation/s',
-      'blush': 'Blush Recommendation/s',
-      'highlighter': 'Highlighter Recommendation/s',
-      'bronzer': 'Bronzer Recommendation/s',
-      'eyeshadow': 'Eyeshadow Recommendation/s',
-      'eyeliner': 'Eyeliner Recommendation/s',
-      'mascara': 'Mascara Recommendation/s',
-      'lipstick': 'Lipstick Recommendation/s',
-      'lipTint': 'Lip Tint Recommendation/s',
-      'lipOil': 'Lip Oil Recommendation/s',
-      'lipGloss': 'Lip Gloss Recommendation/s',
-    };
-
-    // Add sections only for selected preferences
-    allSections.forEach((key, title) {
-      if (selected.contains(key) || selected.isEmpty) {
-        // If no preferences are selected, show all sections
-        sections.add(
-          Padding(
-            padding: const EdgeInsets.only(bottom: 15),
-            child: _buildProductSection(
-              context,
-              title: title,
-              route: key == 'concealer'
-                  ? '/productinfo'
-                  : null, // Only link concealer to product info
+    if (_recommendations.isEmpty) {
+      return [
+        Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Text(
+            'No recommendations found. Please check your preferences.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              color: Colors.grey,
             ),
           ),
-        );
-      }
+        ),
+      ];
+    }
+
+    final sections = <Widget>[];
+
+    _recommendations.forEach((category, products) {
+      sections.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 15),
+          child: _buildProductSection(
+            context,
+            title: '$category Recommendation/s',
+            products: products,
+            route: category.toLowerCase().contains('concealer')
+                ? '/productinfo'
+                : null,
+          ),
+        ),
+      );
     });
 
     return sections;
@@ -166,7 +207,7 @@ class _ImageResultPageState extends State<ImageResultPage> {
   Widget build(BuildContext context) {
     final isAsset = widget.imagePath.startsWith('assets/');
     final fileExists = isAsset ? true : File(widget.imagePath).existsSync();
-
+    print(widget.undertone);
     return Scaffold(
       backgroundColor: const Color(0xFFF4BBD3),
       body: SafeArea(
@@ -380,7 +421,7 @@ class _ImageResultPageState extends State<ImageResultPage> {
               const SizedBox(height: 10),
             ],
           );
-        }),
+        }).toList(),
       ],
     );
   }
@@ -388,92 +429,206 @@ class _ImageResultPageState extends State<ImageResultPage> {
   Widget _buildProductSection(
     BuildContext context, {
     required String title,
+    required List<MakeupProduct> products,
     String? route,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: GoogleFonts.poppins(
-            fontSize: 15,
-            fontStyle: FontStyle.italic,
-            color: const Color(0xFF970B45),
+        Padding(
+          padding: const EdgeInsets.only(left: 8.0, bottom: 12),
+          child: Text(
+            title,
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFFDC1768),
+            ),
           ),
         ),
-        const SizedBox(height: 8),
         SizedBox(
-          height: 180,
+          height: 220,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            itemCount: 3,
-            padding: const EdgeInsets.only(right: 12),
+            itemCount: products.length,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
             itemBuilder: (_, i) {
-              final box = Container(
-                width: 130,
-                margin: const EdgeInsets.only(right: 12),
+              final product = products[i];
+              final card = Container(
+                width: 160,
+                margin: const EdgeInsets.only(right: 16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF686BD),
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: const [
-                    BoxShadow(blurRadius: 4, color: Colors.black26),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
                   ],
                 ),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 12),
-                    Text(
-                      'Product Image Here',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFF1E4F3),
-                        borderRadius: BorderRadius.vertical(
-                          bottom: Radius.circular(8),
+                    // Product Image
+                    Builder(builder: (context) {
+                      return ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(16),
                         ),
-                      ),
+                        child: Container(
+                          height: 120,
+                          width: double.infinity,
+                          color: const Color(0xFFF8F8F8),
+                          child: product.fixedImageUrl != null &&
+                                  product.fixedImageUrl!.isNotEmpty
+                              ? Image.network(
+                                  product.fixedImageUrl!,
+                                  fit: BoxFit.cover,
+                                  loadingBuilder:
+                                      (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Center(
+                                      child: CircularProgressIndicator(
+                                        value: loadingProgress
+                                                    .expectedTotalBytes !=
+                                                null
+                                            ? loadingProgress
+                                                    .cumulativeBytesLoaded /
+                                                loadingProgress
+                                                    .expectedTotalBytes!
+                                            : null,
+                                        strokeWidth: 2,
+                                      ),
+                                    );
+                                  },
+                                  errorBuilder: (context, error, stackTrace) {
+                                    // If the primary image URL fails, try the imageLink as fallback
+                                    // This is especially useful for Google Drive links
+                                    if (product.fixedImageLink != null &&
+                                        product.fixedImageLink!.isNotEmpty) {
+                                      return Image.network(
+                                        product.fixedImageLink!,
+                                        fit: BoxFit.cover,
+                                        loadingBuilder:
+                                            (context, child, loadingProgress) {
+                                          if (loadingProgress == null)
+                                            return child;
+                                          return Center(
+                                            child: CircularProgressIndicator(
+                                              value: loadingProgress
+                                                          .expectedTotalBytes !=
+                                                      null
+                                                  ? loadingProgress
+                                                          .cumulativeBytesLoaded /
+                                                      loadingProgress
+                                                          .expectedTotalBytes!
+                                                  : null,
+                                              strokeWidth: 2,
+                                            ),
+                                          );
+                                        },
+                                        errorBuilder:
+                                            (context, error, stackTrace) =>
+                                                Container(
+                                          color: const Color(0xFFF0F0F0),
+                                          child: const Icon(
+                                            Icons.image_not_supported,
+                                            color: Color(0xFFCCCCCC),
+                                            size: 40,
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                    return Container(
+                                      color: const Color(0xFFF0F0F0),
+                                      child: const Icon(
+                                        Icons.image_not_supported,
+                                        color: Color(0xFFCCCCCC),
+                                        size: 40,
+                                      ),
+                                    );
+                                  },
+                                )
+                              : Container(
+                                  color: const Color(0xFFF0F0F0),
+                                  child: const Icon(
+                                    Icons.image,
+                                    color: Color(0xFFCCCCCC),
+                                    size: 40,
+                                  ),
+                                ),
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8.0),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Brand Name',
-                            textAlign: TextAlign.center,
+                            product.brand,
                             style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              color: Colors.black,
+                              fontSize: 11,
+                              color: const Color(0xFF333333),
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
+                          const SizedBox(height: 2),
                           Text(
-                            'Shade Name',
-                            textAlign: TextAlign.center,
+                            product.productName,
                             style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              color: Colors.black,
+                              fontSize: 11,
+                              color: const Color(0xFF666666),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1E4F3),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              product.shadeName,
+                              style: GoogleFonts.poppins(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFFDC1768),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
+                          if (product.finish != null &&
+                              product.finish!.isNotEmpty)
+                            Text(
+                              product.finish!,
+                              style: GoogleFonts.poppins(
+                                fontSize: 9,
+                                color: const Color(0xFF999999),
+                              ),
+                            ),
                         ],
                       ),
                     ),
                   ],
                 ),
               );
-
-              if (i == 0 && route != null) {
-                return GestureDetector(
-                  onTap: () => Navigator.pushNamed(context, route),
-                  child: box,
-                );
-              }
-
-              return box;
+              return GestureDetector(
+                onTap: route != null && i == 0
+                    ? () => Navigator.pushNamed(context, route)
+                    : null,
+                child: card,
+              );
             },
           ),
         ),

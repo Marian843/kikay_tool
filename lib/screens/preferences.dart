@@ -131,7 +131,7 @@ class _PreferencesPageState extends State<PreferencesPage> {
   Widget build(BuildContext context) {
     // Get the image path from the route arguments
     final imagePath = ModalRoute.of(context)?.settings.arguments as String?;
-    
+
     print('PreferencesPage build called');
     print('Image path: $imagePath');
     print('Current preferences: ${_preferences.toMap()}');
@@ -290,8 +290,9 @@ class _PreferencesPageState extends State<PreferencesPage> {
                 onPressed: widget.onPressed ??
                     () {
                       print('Discover Your Best Shades button pressed');
-                      print('Final preferences before navigation: ${_preferences.toMap()}');
-                      
+                      print(
+                          'Final preferences before navigation: ${_preferences.toMap()}');
+
                       // Count selected items
                       int selectedCount = 0;
                       final prefsMap = _preferences.toMap();
@@ -299,7 +300,7 @@ class _PreferencesPageState extends State<PreferencesPage> {
                         if (value) selectedCount++;
                       });
                       print('Number of selected preferences: $selectedCount');
-                      
+
                       Navigator.pushNamed(
                         context,
                         '/output',
