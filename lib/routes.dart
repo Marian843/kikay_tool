@@ -8,6 +8,7 @@ import 'package:kikay/screens/result.dart';
 import 'package:kikay/screens/preferences.dart';
 import 'package:kikay/screens/output.dart';
 import 'package:kikay/screens/productinfo.dart'; // ✅ Import this
+import 'package:kikay/models/makeup_product.dart';
 import 'package:kikay/services/model_service.dart';
 import 'main.dart';
 
@@ -28,7 +29,7 @@ final Map<String, WidgetBuilder> appRoutes = {
 Route<dynamic>? generateRoute(RouteSettings settings) {
   print('Generating route for: ${settings.name}');
   print('Route arguments: ${settings.arguments}');
-  
+
   switch (settings.name) {
     case '/preferences':
       final imagePath = settings.arguments as String?;
@@ -37,7 +38,7 @@ Route<dynamic>? generateRoute(RouteSettings settings) {
         settings: settings,
         builder: (context) => PreferencesPage(),
       );
-      
+
     case '/result':
       final imagePath = settings.arguments as String?;
       if (imagePath == null) {
@@ -50,11 +51,11 @@ Route<dynamic>? generateRoute(RouteSettings settings) {
 
     case '/output':
       final args = settings.arguments as Map<String, dynamic>?;
-      
+
       // Debug: Print the arguments received
       print('Output route arguments: $args');
       print('Output route arguments type: ${args?.runtimeType}');
-      
+
       if (args == null) {
         print('No arguments received in output route');
         return MaterialPageRoute(
@@ -66,24 +67,33 @@ Route<dynamic>? generateRoute(RouteSettings settings) {
           ),
         );
       }
-      
+
       print('Arguments keys: ${args.keys}');
       print('Preferences in args: ${args['preferences']}');
-      
+
       return MaterialPageRoute(
         builder: (context) => ImageResultPage(
           imagePath: args['imagePath'] ?? 'assets/placeholder.jpg',
           skinTone: args['skinTone'] ?? 'Fair',
           undertone: args['undertone'] ?? 'Neutral',
           modelService: modelService,
-          preferences: args['preferences'] as Map<String, bool>?, // Add preferences
+          preferences:
+              args['preferences'] as Map<String, bool>?, // Add preferences
         ),
       );
 
     case '/productinfo':
-      // You can optionally extract arguments like:
-      // final args = settings.arguments as Map<String, dynamic>?;
-      return MaterialPageRoute(builder: (context) => const ProductInfoPage());
+      final args = settings.arguments as Map<String, dynamic>?;
+      if (args == null) {
+        return _errorRoute("Missing arguments for ProductInfoPage.");
+      }
+      return MaterialPageRoute(
+        builder: (context) => ProductInfoPage(
+          product: args['product'] as MakeupProduct,
+          detectedSkinTone: args['detectedSkinTone'] as String?,
+          detectedUndertone: args['detectedUndertone'] as String?,
+        ),
+      );
 
     default:
       return _errorRoute("Route not found: ${settings.name}");

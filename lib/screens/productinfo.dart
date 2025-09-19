@@ -1,8 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:kikay/models/makeup_product.dart';
 
 class ProductInfoPage extends StatelessWidget {
-  const ProductInfoPage({super.key});
+  final MakeupProduct product;
+  final String? detectedSkinTone;
+  final String? detectedUndertone;
+
+  const ProductInfoPage({
+    super.key,
+    required this.product,
+    this.detectedSkinTone,
+    this.detectedUndertone,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -44,10 +54,9 @@ class ProductInfoPage extends StatelessWidget {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  // Product Image Placeholder
+                  // Product Image
                   Container(
                     width: screenWidth,
-                    height: 299,
                     margin: const EdgeInsets.only(top: 20, bottom: 44),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF1E4F3),
@@ -59,15 +68,77 @@ class ProductInfoPage extends StatelessWidget {
                         ),
                       ],
                     ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      'Product Image here.',
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.black,
-                      ),
-                    ),
+                    child: product.fixedImageUrl != null &&
+                            product.fixedImageUrl!.isNotEmpty
+                        ? Image.network(
+                            product.fixedImageUrl!,
+                            fit: BoxFit.cover,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Center(
+                                child: CircularProgressIndicator(
+                                  value: loadingProgress.expectedTotalBytes !=
+                                          null
+                                      ? loadingProgress.cumulativeBytesLoaded /
+                                          loadingProgress.expectedTotalBytes!
+                                      : null,
+                                  strokeWidth: 2,
+                                ),
+                              );
+                            },
+                            errorBuilder: (context, error, stackTrace) {
+                              // If the primary image URL fails, try the imageLink as fallback
+                              if (product.fixedImageLink != null &&
+                                  product.fixedImageLink!.isNotEmpty) {
+                                return Image.network(
+                                  product.fixedImageLink!,
+                                  fit: BoxFit.cover,
+                                  loadingBuilder:
+                                      (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Center(
+                                      child: CircularProgressIndicator(
+                                        value: loadingProgress
+                                                    .expectedTotalBytes !=
+                                                null
+                                            ? loadingProgress
+                                                    .cumulativeBytesLoaded /
+                                                loadingProgress
+                                                    .expectedTotalBytes!
+                                            : null,
+                                        strokeWidth: 2,
+                                      ),
+                                    );
+                                  },
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Container(
+                                    color: const Color(0xFFF0F0F0),
+                                    child: const Icon(
+                                      Icons.image_not_supported,
+                                      color: Color(0xFFCCCCCC),
+                                      size: 40,
+                                    ),
+                                  ),
+                                );
+                              }
+                              return Container(
+                                color: const Color(0xFFF0F0F0),
+                                child: const Icon(
+                                  Icons.image_not_supported,
+                                  color: Color(0xFFCCCCCC),
+                                  size: 40,
+                                ),
+                              );
+                            },
+                          )
+                        : Container(
+                            color: const Color(0xFFF0F0F0),
+                            child: const Icon(
+                              Icons.image,
+                              color: Color(0xFFCCCCCC),
+                              size: 40,
+                            ),
+                          ),
                   ),
 
                   // Text Info
@@ -75,9 +146,12 @@ class ProductInfoPage extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 25),
                     child: Column(
                       children: [
-                        infoText('Name:', '[Product Name]'),
-                        infoText('Detected Skin Tone:', '[Skin Tone Category]'),
-                        infoText('Detected Undertone:', '[Warm/Cool/Neutral]'),
+                        infoText(
+                            'Name:', '${product.brand} ${product.productName}'),
+                        infoText(
+                            'Skin Tone:', detectedSkinTone ?? 'Not detected'),
+                        infoText(
+                            'Undertone:', detectedUndertone ?? 'Not detected'),
                         const SizedBox(height: 29),
 
                         // Shade Details Box
@@ -101,18 +175,19 @@ class ProductInfoPage extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               detailHeader('Shade Details'),
-                              detailBullet('Shade Details:', '[Exact Shade]'),
+                              detailBullet(
+                                  'Shade Details:', product.fullShadeName),
                               detailBullet(
                                 'Undertone Compatibility:',
-                                '(e.g., "Best for warm undertones")',
+                                'Best for ${product.undertone.toLowerCase()} undertones',
                               ),
                               detailBullet(
                                 'Finish Type:',
-                                '(Matte, Glossy, Dewy, Satin, etc.)',
+                                product.finish ?? 'Not specified',
                               ),
                               detailBullet(
-                                'Coverage (if applicable):',
-                                '(Sheer, Medium, Full)',
+                                'Skin Tone:',
+                                product.skinTone ?? 'Not specified',
                               ),
                             ],
                           ),

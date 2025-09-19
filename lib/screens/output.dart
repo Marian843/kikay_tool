@@ -192,9 +192,6 @@ class _ImageResultPageState extends State<ImageResultPage> {
             context,
             title: '$category Recommendation/s',
             products: products,
-            route: category.toLowerCase().contains('concealer')
-                ? '/productinfo'
-                : null,
           ),
         ),
       );
@@ -353,20 +350,68 @@ class _ImageResultPageState extends State<ImageResultPage> {
   }
 
   Widget _buildWardrobeColors() {
-    final colorSets = [
-      {
-        'colors': ['#DCAE96', '#A8BBA2', '#3A5A75'],
-        'labels': ['Dusty Rose', 'Sage', 'Denim Blue'],
-      },
-      {
-        'colors': ['#B8A398', '#B0B0B0', '#F5F5F5'],
-        'labels': ['Taupe', 'Gray', 'Soft White'],
-      },
-      {
-        'colors': ['#FFF4B2', '#AEEEEE', '#C49BBB'],
-        'labels': ['Soft Yellow', 'Aqua', 'Mauve'],
-      },
-    ];
+    // Color data organized by undertone
+    final Map<String, List<Map<String, String>>> colorData = {
+      'Warm': [
+        {'name': 'Olive Green', 'hex': '#808000'},
+        {'name': 'Coral', 'hex': '#FF7F50'},
+        {'name': 'Mustard', 'hex': '#FFDB58'},
+        {'name': 'Peach', 'hex': '#FFDAB9'},
+        {'name': 'Orange', 'hex': '#FFA500'},
+        {'name': 'Red', 'hex': '#FF0000'},
+        {'name': 'Violet', 'hex': '#8A2BE2'},
+        {'name': 'Green', 'hex': '#228B22'},
+      ],
+      'Cool': [
+        {'name': 'Burgundy', 'hex': '#800020'},
+        {'name': 'Navy', 'hex': '#000080'},
+        {'name': 'Emerald', 'hex': '#50C878'},
+        {'name': 'Blue', 'hex': '#1E90FF'},
+        {'name': 'Purple', 'hex': '#800080'},
+        {'name': 'Magenta', 'hex': '#FF00FF'},
+        {'name': 'Yellow', 'hex': '#FFFF00'},
+      ],
+      'Neutral': [
+        {'name': 'Dusty Rose', 'hex': '#DCAE96'},
+        {'name': 'Sage', 'hex': '#9CAF88'},
+        {'name': 'Denim Blue', 'hex': '#1560BD'},
+        {'name': 'Taupe', 'hex': '#483C32'},
+        {'name': 'Gray', 'hex': '#808080'},
+        {'name': 'Soft White', 'hex': '#F5F5F5'},
+        {'name': 'Soft Yellow', 'hex': '#FFF8DC'},
+        {'name': 'Aqua', 'hex': '#00FFFF'},
+        {'name': 'Mauve', 'hex': '#E0B0FF'},
+      ],
+      // Teal can be used for both warm and cool undertones
+      'Warm, Cool': [
+        {'name': 'Teal', 'hex': '#008080'},
+      ],
+    };
+
+    // Get the detected undertone
+    final detectedUndertone =
+        _predictedUndertone?.toLowerCase() ?? widget.undertone.toLowerCase();
+
+    // Determine which colors to show based on undertone
+    List<Map<String, String>> colorsToShow = [];
+
+    if (detectedUndertone.contains('warm')) {
+      colorsToShow.addAll(colorData['Warm']!);
+      colorsToShow.addAll(colorData['Warm, Cool']!);
+    } else if (detectedUndertone.contains('cool')) {
+      colorsToShow.addAll(colorData['Cool']!);
+      colorsToShow.addAll(colorData['Warm, Cool']!);
+    } else {
+      // Default to neutral colors or show all if undertone is unclear
+      colorsToShow.addAll(colorData['Neutral']!);
+    }
+
+    // Split colors into rows of 3 for better display
+    final List<List<Map<String, String>>> colorRows = [];
+    for (int i = 0; i < colorsToShow.length; i += 3) {
+      final end = (i + 3 < colorsToShow.length) ? i + 3 : colorsToShow.length;
+      colorRows.add(colorsToShow.sublist(i, end));
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -380,35 +425,43 @@ class _ImageResultPageState extends State<ImageResultPage> {
           ),
         ),
         const SizedBox(height: 10),
-        ...colorSets.map((set) {
+        ...colorRows.map((row) {
           return Column(
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(set['colors']!.length, (i) {
+                children: row.map((color) {
                   return Container(
                     margin: const EdgeInsets.symmetric(horizontal: 8),
                     width: 45,
                     height: 45,
                     decoration: BoxDecoration(
                       color: Color(
-                        int.parse('0xFF${set['colors']![i].substring(1)}'),
+                        int.parse('0xFF${color['hex']!.substring(1)}'),
                       ),
                       shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                   );
-                }),
+                }).toList(),
               ),
               const SizedBox(height: 4),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(set['labels']!.length, (i) {
+                children: row.map((color) {
                   return Container(
                     width: 70,
                     alignment: Alignment.center,
                     margin: const EdgeInsets.symmetric(horizontal: 4),
                     child: Text(
-                      set['labels']![i],
+                      color['name']!,
                       textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
                         fontSize: 12,
@@ -416,7 +469,7 @@ class _ImageResultPageState extends State<ImageResultPage> {
                       ),
                     ),
                   );
-                }),
+                }).toList(),
               ),
               const SizedBox(height: 10),
             ],
@@ -430,7 +483,6 @@ class _ImageResultPageState extends State<ImageResultPage> {
     BuildContext context, {
     required String title,
     required List<MakeupProduct> products,
-    String? route,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -624,9 +676,18 @@ class _ImageResultPageState extends State<ImageResultPage> {
                 ),
               );
               return GestureDetector(
-                onTap: route != null && i == 0
-                    ? () => Navigator.pushNamed(context, route)
-                    : null,
+                onTap: () {
+                  Navigator.pushNamed(
+                    context,
+                    '/productinfo',
+                    arguments: {
+                      'product': product,
+                      'detectedSkinTone': _predictedSkinTone ?? widget.skinTone,
+                      'detectedUndertone':
+                          _predictedUndertone ?? widget.undertone,
+                    },
+                  );
+                },
                 child: card,
               );
             },
