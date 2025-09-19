@@ -11,6 +11,7 @@ class MakeupProduct {
   final String? skinToneCategory;
   final String? imageUrl;
   final String? imageLink;
+  final double? price;
 
   MakeupProduct({
     required this.id,
@@ -25,6 +26,7 @@ class MakeupProduct {
     this.skinToneCategory,
     this.imageUrl,
     this.imageLink,
+    this.price,
   });
 
   factory MakeupProduct.fromFirestore(dynamic data, String id) {
@@ -38,6 +40,18 @@ class MakeupProduct {
     // Fix Google Drive URLs
     if (imageUrl != null && imageUrl.contains('drive.google.com')) {
       imageUrl = fixGoogleDriveUrl(imageUrl);
+    }
+
+    // Parse price from Firestore
+    double? price;
+    if (mapData['Price'] != null) {
+      if (mapData['Price'] is double) {
+        price = mapData['Price'];
+      } else if (mapData['Price'] is int) {
+        price = (mapData['Price'] as int).toDouble();
+      } else if (mapData['Price'] is String) {
+        price = double.tryParse(mapData['Price']);
+      }
     }
 
     return MakeupProduct(
@@ -55,6 +69,7 @@ class MakeupProduct {
           mapData['Skintone_Category'] ?? mapData['skintone_category'],
       imageUrl: imageUrl,
       imageLink: mapData['Image Link'] ?? mapData['image_link'],
+      price: price,
     );
   }
 
@@ -75,6 +90,18 @@ class MakeupProduct {
   }
 
   factory MakeupProduct.fromCsv(Map<String, dynamic> data) {
+    // Parse price from CSV
+    double? price;
+    if (data['Price'] != null) {
+      if (data['Price'] is double) {
+        price = data['Price'];
+      } else if (data['Price'] is int) {
+        price = (data['Price'] as int).toDouble();
+      } else if (data['Price'] is String) {
+        price = double.tryParse(data['Price']);
+      }
+    }
+
     return MakeupProduct(
       id: '${data['Brand']}_${data['Shade_Name']}'.replaceAll(' ', '_'),
       makeupType: data['Makeup_Type'] ?? '',
@@ -88,6 +115,7 @@ class MakeupProduct {
       skinToneCategory: data['Skintone_Category'],
       imageUrl: data['Image'],
       imageLink: data['Image Link'],
+      price: price,
     );
   }
 
@@ -104,6 +132,7 @@ class MakeupProduct {
       'Skintone_Category': skinToneCategory,
       'Image': imageUrl,
       'Image Link': imageLink,
+      'Price': price,
     };
   }
 

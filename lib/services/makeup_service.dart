@@ -276,13 +276,12 @@ class MakeupService {
             undertone.toLowerCase().contains(product.undertone.toLowerCase());
 
         if (isBaseProduct) {
-          // Handle skin tone variations
-          bool skinToneMatch = product.skinTone
-                  ?.toLowerCase()
-                  .contains(skinTone.toLowerCase()) ??
-              false;
+          // Handle skin tone variations - only check skin tone for base products
+          bool skinToneMatch = product.skinTone != null &&
+              product.skinTone!.toLowerCase().contains(skinTone.toLowerCase());
           return typeMatch && undertoneMatch && skinToneMatch;
         } else {
+          // For non-base products (eye, lip, blush), only match type and undertone
           return typeMatch && undertoneMatch;
         }
       }).toList();
@@ -297,7 +296,7 @@ class MakeupService {
   // Helper method to validate and fix image URLs
   String? _fixImageUrl(String? url) {
     if (url == null || url.isEmpty) return null;
-    
+
     // Handle Google Drive URLs
     if (url.contains('drive.google.com')) {
       // Convert Google Drive sharing URLs to direct image URLs
@@ -307,7 +306,7 @@ class MakeupService {
         return 'https://drive.google.com/uc?export=view&id=$fileId';
       }
     }
-    
+
     return url;
   }
 

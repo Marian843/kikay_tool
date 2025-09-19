@@ -148,6 +148,9 @@ class ProductInfoPage extends StatelessWidget {
                       children: [
                         infoText(
                             'Name:', '${product.brand} ${product.productName}'),
+                        if (product.price != null)
+                          infoText(
+                              'Price:', '${product.price!.toStringAsFixed(2)}'),
                         infoText(
                             'Skin Tone:', detectedSkinTone ?? 'Not detected'),
                         infoText(
@@ -185,6 +188,11 @@ class ProductInfoPage extends StatelessWidget {
                                 'Finish Type:',
                                 product.finish ?? 'Not specified',
                               ),
+                              if (product.price != null)
+                                detailBullet(
+                                  'Price:',
+                                  '₱${product.price!.toStringAsFixed(2)}',
+                                ),
                               detailBullet(
                                 'Skin Tone:',
                                 product.skinTone ?? 'Not specified',

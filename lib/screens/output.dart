@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:kikay/services/model_service.dart';
 import 'package:kikay/services/makeup_service.dart';
 import 'package:kikay/models/makeup_product.dart';
@@ -31,6 +32,7 @@ class _ImageResultPageState extends State<ImageResultPage> {
   bool _isLoading = true;
   String _errorMessage = '';
   final MakeupService _makeupService = MakeupService();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   Map<String, List<MakeupProduct>> _recommendations = {};
   bool _isLoadingRecommendations = false;
 
@@ -105,6 +107,9 @@ class _ImageResultPageState extends State<ImageResultPage> {
         await _fetchRecommendations(finalSkinTone, finalUndertone);
       }
 
+      // Upload analysis data to Firestore
+      await _uploadAnalysisData(finalSkinTone, finalUndertone);
+
       setState(() {
         _isLoading = false;
       });
@@ -150,6 +155,114 @@ class _ImageResultPageState extends State<ImageResultPage> {
       setState(() {
         _isLoadingRecommendations = false;
       });
+    }
+  }
+
+  // Get recommended wardrobe colors based on undertone
+  List<Map<String, String>> _getRecommendedWardrobeColors() {
+    // Color data organized by undertone
+    final Map<String, List<Map<String, String>>> colorData = {
+      'Warm': [
+        {'name': 'Olive Green', 'hex': '#808000'},
+        {'name': 'Coral', 'hex': '#FF7F50'},
+        {'name': 'Mustard', 'hex': '#FFDB58'},
+        {'name': 'Peach', 'hex': '#FFDAB9'},
+        {'name': 'Orange', 'hex': '#FFA500'},
+        {'name': 'Red', 'hex': '#FF0000'},
+        {'name': 'Violet', 'hex': '#8A2BE2'},
+        {'name': 'Green', 'hex': '#228B22'},
+      ],
+      'Cool': [
+        {'name': 'Burgundy', 'hex': '#800020'},
+        {'name': 'Navy', 'hex': '#000080'},
+        {'name': 'Emerald', 'hex': '#50C878'},
+        {'name': 'Blue', 'hex': '#1E90FF'},
+        {'name': 'Purple', 'hex': '#800080'},
+        {'name': 'Magenta', 'hex': '#FF00FF'},
+        {'name': 'Yellow', 'hex': '#FFFF00'},
+      ],
+      'Neutral': [
+        {'name': 'Dusty Rose', 'hex': '#DCAE96'},
+        {'name': 'Sage', 'hex': '#9CAF88'},
+        {'name': 'Denim Blue', 'hex': '#1560BD'},
+        {'name': 'Taupe', 'hex': '#483C32'},
+        {'name': 'Gray', 'hex': '#808080'},
+        {'name': 'Soft White', 'hex': '#F5F5F5'},
+        {'name': 'Soft Yellow', 'hex': '#FFF8DC'},
+        {'name': 'Aqua', 'hex': '#00FFFF'},
+        {'name': 'Mauve', 'hex': '#E0B0FF'},
+      ],
+      // Teal can be used for both warm and cool undertones
+      'Warm, Cool': [
+        {'name': 'Teal', 'hex': '#008080'},
+      ],
+    };
+
+    // Get the detected undertone
+    final detectedUndertone =
+        _predictedUndertone?.toLowerCase() ?? widget.undertone.toLowerCase();
+
+    // Determine which colors to show based on undertone
+    List<Map<String, String>> colorsToShow = [];
+
+    if (detectedUndertone.contains('warm')) {
+      colorsToShow.addAll(colorData['Warm']!);
+      colorsToShow.addAll(colorData['Warm, Cool']!);
+    } else if (detectedUndertone.contains('cool')) {
+      colorsToShow.addAll(colorData['Cool']!);
+      colorsToShow.addAll(colorData['Warm, Cool']!);
+    } else {
+      // Default to neutral colors or show all if undertone is unclear
+      colorsToShow.addAll(colorData['Neutral']!);
+    }
+
+    return colorsToShow;
+  }
+
+  // Upload analysis data to Firestore
+  Future<void> _uploadAnalysisData(String skinTone, String undertone) async {
+    try {
+      print('Uploading analysis data to Firestore...');
+
+      // Get recommended wardrobe colors based on undertone
+      List<Map<String, String>> recommendedColors =
+          _getRecommendedWardrobeColors();
+
+      // Convert recommended products to a format that can be stored in Firestore
+      Map<String, List<Map<String, dynamic>>> recommendedProductsData = {};
+      _recommendations.forEach((category, products) {
+        recommendedProductsData[category] = products.map((product) {
+          return {
+            'id': product.id,
+            'brand': product.brand,
+            'productName': product.productName,
+            'shadeName': product.shadeName,
+            'undertone': product.undertone,
+            'skinTone': product.skinTone,
+            'price': product.price,
+          };
+        }).toList();
+      });
+
+      // Create a map of the analysis data
+      Map<String, dynamic> analysisData = {
+        'timestamp': FieldValue.serverTimestamp(),
+        'skinTone': widget.skinTone,
+        'undertone': widget.undertone,
+        'preferences': widget.preferences ?? {},
+        'predictedSkinTone': _predictedSkinTone,
+        'predictedUndertone': _predictedUndertone,
+        'recommendedColors': recommendedColors,
+        'recommendedProducts': recommendedProductsData,
+      };
+
+      // Add the document to the 'user_analyses' collection
+      await _firestore.collection('user_analyses').add(analysisData);
+
+      print('Analysis data successfully uploaded to Firestore');
+    } catch (e) {
+      print('Error uploading analysis data to Firestore: $e');
+      // We don't want to show an error to the user for this background operation
     }
   }
 
