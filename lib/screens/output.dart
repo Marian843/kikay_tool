@@ -72,35 +72,37 @@ class _ImageResultPageState extends State<ImageResultPage> {
         return;
       }
 
-      print('Running skin tone prediction...');
-      // Run predictions using the model service
-      final skinTonePrediction =
-          widget.modelService.predictSkinTone(File(widget.imagePath));
+      print('Running combined skin tone analysis...');
+      // Use combined RGB and ML analysis for skin tone determination
+      final combinedSkinToneAnalysis = widget.modelService
+          .performCombinedSkinToneAnalysis(File(widget.imagePath));
 
-      print('Running undertone prediction...');
-      final undertonePrediction =
-          widget.modelService.predictUnderTone(File(widget.imagePath));
+      print('Running combined undertone analysis...');
+      // Use combined RGB and ML analysis for undertone determination
+      final combinedUndertoneAnalysis = widget.modelService
+          .performCombinedUndertoneAnalysis(File(widget.imagePath));
 
       String finalSkinTone = widget.skinTone;
       String finalUndertone = widget.undertone;
 
-      if (skinTonePrediction != null) {
-        _predictedSkinTone =
-            widget.modelService.getSkinToneLabel(skinTonePrediction);
-        finalSkinTone = _predictedSkinTone!;
-        print('Skin tone prediction: $_predictedSkinTone');
-      } else {
-        print('Skin tone prediction failed');
-      }
+      // Use combined analysis results
+      _predictedSkinTone = combinedSkinToneAnalysis['finalSkinTone'] as String;
+      finalSkinTone = _predictedSkinTone!;
+      print('Combined skin tone analysis: $_predictedSkinTone');
+      print('ML Skin Tone: ${combinedSkinToneAnalysis['mlSkinTone']}');
+      print('RGB Skin Tone: ${combinedSkinToneAnalysis['rgbSkinTone']}');
+      print('Confidence: ${combinedSkinToneAnalysis['confidence']}');
 
-      if (undertonePrediction != null) {
-        _predictedUndertone =
-            widget.modelService.getUnderToneLabel(undertonePrediction);
-        finalUndertone = _predictedUndertone!;
-        print('Undertone prediction: $_predictedUndertone');
-      } else {
-        print('Undertone prediction failed');
-      }
+      // Use the combined analysis result for undertone
+      _predictedUndertone = combinedUndertoneAnalysis['finalUndertone'] as String;
+      finalUndertone = _predictedUndertone!;
+
+      print('Combined Undertone Analysis Results:');
+      print('ML Model Undertone: ${combinedUndertoneAnalysis['mlUndertone']}');
+      print('RGB-based Undertone: ${combinedUndertoneAnalysis['rgbUndertone']}');
+      print('Final Undertone: $_predictedUndertone');
+      print('Confidence: ${combinedUndertoneAnalysis['confidence']}');
+      print('RGB Values: ${combinedUndertoneAnalysis['rgbValues']}');
 
       // Fetch makeup recommendations after analysis
       if (widget.preferences != null) {
@@ -131,8 +133,8 @@ class _ImageResultPageState extends State<ImageResultPage> {
 
     try {
       // Use the actual detected values, not the initial widget values
-      final actualSkinTone = _predictedSkinTone ?? widget.skinTone;
-      final actualUndertone = _predictedUndertone ?? widget.undertone;
+      final actualSkinTone = (_predictedSkinTone?.isNotEmpty == true ? _predictedSkinTone : (widget.skinTone.isNotEmpty == true ? widget.skinTone : 'Medium'))!;
+      final actualUndertone = (_predictedUndertone?.isNotEmpty == true ? _predictedUndertone : (widget.undertone.isNotEmpty == true ? widget.undertone : 'Neutral'))!;
 
       print(
           'Using actual values - Skin Tone: $actualSkinTone, Undertone: $actualUndertone');
@@ -244,11 +246,14 @@ class _ImageResultPageState extends State<ImageResultPage> {
         }).toList();
       });
 
-      // Create a map of the analysis data
+      // Create a map of the analysis data with consistent values
+      final finalSkinTone = (_predictedSkinTone?.isNotEmpty == true ? _predictedSkinTone : (widget.skinTone.isNotEmpty == true ? widget.skinTone : 'Medium'))!;
+      final finalUndertone = (_predictedUndertone?.isNotEmpty == true ? _predictedUndertone : (widget.undertone.isNotEmpty == true ? widget.undertone : 'Neutral'))!;
+      
       Map<String, dynamic> analysisData = {
         'timestamp': FieldValue.serverTimestamp(),
-        'skinTone': widget.skinTone,
-        'undertone': widget.undertone,
+        'skinTone': finalSkinTone,
+        'undertone': finalUndertone,
         'preferences': widget.preferences ?? {},
         'predictedSkinTone': _predictedSkinTone,
         'predictedUndertone': _predictedUndertone,
@@ -417,7 +422,7 @@ class _ImageResultPageState extends State<ImageResultPage> {
                         textAlign: TextAlign.center,
                       ),
                       Text(
-                        'Detected Skin Tone: ${_predictedSkinTone ?? widget.skinTone}',
+                        'Detected Skin Tone: ${(_predictedSkinTone?.isNotEmpty == true ? _predictedSkinTone : (widget.skinTone.isNotEmpty == true ? widget.skinTone : 'Medium'))}',
                         style: GoogleFonts.poppins(
                           fontSize: 12,
                           fontStyle: FontStyle.italic,
@@ -426,7 +431,7 @@ class _ImageResultPageState extends State<ImageResultPage> {
                         textAlign: TextAlign.center,
                       ),
                       Text(
-                        'Detected Undertone: ${_predictedUndertone ?? widget.undertone}',
+                        'Detected Undertone: ${(_predictedUndertone?.isNotEmpty == true ? _predictedUndertone : (widget.undertone.isNotEmpty == true ? widget.undertone : 'Neutral'))}',
                         style: GoogleFonts.poppins(
                           fontSize: 12,
                           fontStyle: FontStyle.italic,

@@ -17,15 +17,18 @@ class _HomePageState extends State<HomePage> {
     Navigator.pushNamed(context, '/camera');
   }
 
-  /// Pick image from gallery → go to ResultPage
+  /// Pick image from gallery → go to CropScreen
   Future<void> _pickFromGallery() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     if (!mounted) return; // ✅ Guard against context use after async
     if (pickedFile != null) {
       Navigator.pushNamed(
         context,
-        '/result', // make sure route is '/result'
-        arguments: pickedFile.path, // send selected image path
+        '/crop', // make sure route is '/crop'
+        arguments: {
+          'imagePath': pickedFile.path,
+          'title': 'Crop Your Photo',
+        }, // send selected image path
       );
     }
   }

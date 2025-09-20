@@ -4,6 +4,7 @@ import 'package:kikay/screens/welcome.dart';
 import 'package:kikay/screens/terms.dart';
 import 'package:kikay/screens/home.dart';
 import 'package:kikay/screens/camera.dart';
+import 'package:kikay/screens/crop_screen.dart';
 import 'package:kikay/screens/result.dart';
 import 'package:kikay/screens/preferences.dart';
 import 'package:kikay/screens/output.dart';
@@ -37,6 +38,19 @@ Route<dynamic>? generateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         settings: settings,
         builder: (context) => PreferencesPage(),
+      );
+
+    case '/crop':
+      final args = settings.arguments as Map<String, dynamic>?;
+      if (args == null) {
+        return _errorRoute("Missing arguments for CropScreen.");
+      }
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => CropScreen(
+          imagePath: args['imagePath'],
+          title: args['title'],
+        ),
       );
 
     case '/result':
@@ -74,8 +88,8 @@ Route<dynamic>? generateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         builder: (context) => ImageResultPage(
           imagePath: args['imagePath'] ?? 'assets/placeholder.jpg',
-          skinTone: args['skinTone'] ?? 'Fair',
-          undertone: args['undertone'] ?? 'Neutral',
+          skinTone: args['skinTone'] ?? '',
+          undertone: args['undertone'] ?? '',
           modelService: modelService,
           preferences:
               args['preferences'] as Map<String, bool>?, // Add preferences

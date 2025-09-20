@@ -69,7 +69,14 @@ class _CameraScreenState extends State<CameraScreen> {
       if (!mounted) return;
 
       if (faces.isNotEmpty) {
-        Navigator.pushNamed(context, '/result', arguments: file.path);
+        Navigator.pushNamed(
+          context,
+          '/crop',
+          arguments: {
+            'imagePath': file.path,
+            'title': 'Crop Your Photo',
+          },
+        );
       } else {
         _showNoFaceDialog(context);
       }

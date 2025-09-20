@@ -301,13 +301,17 @@ class _PreferencesPageState extends State<PreferencesPage> {
                       });
                       print('Number of selected preferences: $selectedCount');
 
+                      // Don't hardcode skinTone and undertone values
+                      // Let the ML model determine these values in the output page
                       Navigator.pushNamed(
                         context,
                         '/output',
                         arguments: {
                           'imagePath': imagePath,
-                          'skinTone': 'Fair',
-                          'undertone': 'Neutral',
+                          'skinTone':
+                              '', // Empty string to indicate it should be predicted
+                          'undertone':
+                              '', // Empty string to indicate it should be predicted
                           'preferences': prefsMap, // Pass preferences
                         },
                       );
