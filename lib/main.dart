@@ -17,14 +17,11 @@ Future<void> main() async {
   );
 
   // Initialize model service
-  print('Initializing model service...');
   modelService = ModelService();
 
   try {
     await modelService.loadModels();
-    print('Model service initialized successfully');
   } catch (e) {
-    print('Failed to initialize model service: $e');
     // We'll continue anyway so the app can still function
   }
 

@@ -15,33 +15,20 @@ class ModelService {
   // Load the models
   Future<void> loadModels() async {
     try {
-      print('Loading skin tone model...');
       _skinToneInterpreter = await Interpreter.fromAsset(
         'assets/models/mobilenet_skintone_final.tflite',
       );
-      print('Skin tone model loaded successfully');
-
-      print('Loading undertone model...');
       _underToneInterpreter = await Interpreter.fromAsset(
         'assets/models/mobilenet_undertone_final.tflite',
       );
-      print('Undertone model loaded successfully');
-
-      // Print model details
       final skinToneInputShape = _skinToneInterpreter!.getInputTensor(0).shape;
       final skinToneOutputShape =
           _skinToneInterpreter!.getOutputTensor(0).shape;
-      print(
-          'Skin tone model - Input: $skinToneInputShape, Output: $skinToneOutputShape');
-
       final underToneInputShape =
           _underToneInterpreter!.getInputTensor(0).shape;
       final underToneOutputShape =
           _underToneInterpreter!.getOutputTensor(0).shape;
-      print(
-          'Undertone model - Input: $underToneInputShape, Output: $underToneOutputShape');
     } catch (e) {
-      print('Error loading models: $e');
       rethrow; // Re-throw the error so we can see the full stack trace
     }
   }
@@ -86,25 +73,16 @@ class ModelService {
     try {
       // Get input tensor dimensions
       final inputShape = _skinToneInterpreter!.getInputTensor(0).shape;
-      print('Skin tone model input shape: $inputShape');
-
       // Get output tensor dimensions
       final outputShape = _skinToneInterpreter!.getOutputTensor(0).shape;
-      print('Skin tone model output shape: $outputShape');
-
       // Use fixed input size of 224 for MobileNet
       final inputSize = 224;
 
       // Preprocess image
       final inputData = preprocessImage(imageFile, inputSize);
-      print('Preprocessed image data length: ${inputData.length}');
-
       // Create output buffer with the correct shape - model outputs [1, 3]
       final outputBuffer = List.generate(
           outputShape[0], (i) => List.filled(outputShape[1], 0.0));
-      print(
-          'Output buffer shape: [${outputBuffer.length}, ${outputBuffer[0].length}]');
-
       // Create a 4D tensor with shape [1, 224, 224, 3]
       final inputTensor = List.generate(
         1,
@@ -122,15 +100,11 @@ class ModelService {
 
       // Run inference
       _skinToneInterpreter!.run(inputTensor, outputBuffer);
-      print('Skin tone prediction successful: $outputBuffer');
-
       // Flatten the output buffer from [1, 3] to [3]
       final flattenedOutput = List<double>.from(outputBuffer[0]);
 
       // Validate the output
       if (flattenedOutput.every((val) => val == 0.0)) {
-        print(
-            'WARNING: All skin tone prediction values are zero, using small random values to prevent Unknown result');
         // Add small random values to prevent all zeros
         for (int i = 0; i < flattenedOutput.length; i++) {
           flattenedOutput[i] = 0.01 + (Random().nextDouble() * 0.01);
@@ -140,7 +114,6 @@ class ModelService {
       // Normalize if needed (some models output very small values)
       final maxVal = flattenedOutput.reduce((a, b) => a > b ? a : b);
       if (maxVal < 0.01) {
-        print('WARNING: Skin tone predictions are very small, normalizing...');
         final normalized = flattenedOutput.map((val) => val * 100).toList();
         return normalized;
       }
@@ -148,7 +121,6 @@ class ModelService {
       // Return prediction results
       return flattenedOutput;
     } catch (e) {
-      print('Error in skin tone prediction: $e');
       return null;
     }
   }
@@ -163,25 +135,16 @@ class ModelService {
     try {
       // Get input tensor dimensions
       final inputShape = _underToneInterpreter!.getInputTensor(0).shape;
-      print('Undertone model input shape: $inputShape');
-
       // Get output tensor dimensions
       final outputShape = _underToneInterpreter!.getOutputTensor(0).shape;
-      print('Undertone model output shape: $outputShape');
-
       // Use fixed input size of 224 for MobileNet
       final inputSize = 224;
 
       // Preprocess image
       final inputData = preprocessImage(imageFile, inputSize);
-      print('Preprocessed image data length: ${inputData.length}');
-
       // Create output buffer with the correct shape - model outputs [1, 3]
       final outputBuffer = List.generate(
           outputShape[0], (i) => List.filled(outputShape[1], 0.0));
-      print(
-          'Output buffer shape: [${outputBuffer.length}, ${outputBuffer[0].length}]');
-
       // Create a 4D tensor with shape [1, 224, 224, 3]
       final inputTensor = List.generate(
         1,
@@ -199,15 +162,11 @@ class ModelService {
 
       // Run inference
       _underToneInterpreter!.run(inputTensor, outputBuffer);
-      print('Undertone prediction successful: $outputBuffer');
-
       // Flatten the output buffer from [1, 3] to [3]
       final flattenedOutput = List<double>.from(outputBuffer[0]);
 
       // Validate the output
       if (flattenedOutput.every((val) => val == 0.0)) {
-        print(
-            'WARNING: All undertone prediction values are zero, using small random values to prevent Unknown result');
         // Add small random values to prevent all zeros
         for (int i = 0; i < flattenedOutput.length; i++) {
           flattenedOutput[i] = 0.01 + (Random().nextDouble() * 0.01);
@@ -217,7 +176,6 @@ class ModelService {
       // Normalize if needed (some models output very small values)
       final maxVal = flattenedOutput.reduce((a, b) => a > b ? a : b);
       if (maxVal < 0.01) {
-        print('WARNING: Undertone predictions are very small, normalizing...');
         final normalized = flattenedOutput.map((val) => val * 100).toList();
         return normalized;
       }
@@ -225,28 +183,22 @@ class ModelService {
       // Return prediction results
       return flattenedOutput;
     } catch (e) {
-      print('Error in undertone prediction: $e');
       return null;
     }
   }
 
   // Get skin tone label from prediction
   String getSkinToneLabel(List<double> prediction) {
-    print('Raw skin tone prediction values: $prediction');
-
     // Define your skin tone labels based on your model's output
     // These labels should match what your model was trained on
     final labels = ['Fair', 'Light', 'Medium', 'Olive', 'Brown', 'Dark'];
 
     if (prediction.isEmpty) {
-      print('Empty prediction array received');
       return 'Unknown';
     }
 
     // Check if all values are zero or invalid
     if (prediction.every((val) => val <= 0.0)) {
-      print(
-          'All prediction values are zero or negative, using fallback: $prediction');
       // Return a default value instead of Unknown
       return 'Medium'; // Default fallback for skin tone
     }
@@ -255,10 +207,7 @@ class ModelService {
     final maxIndex =
         prediction.indexOf(prediction.reduce((a, b) => a > b ? a : b));
 
-    print('Max probability index: $maxIndex, value: ${prediction[maxIndex]}');
-
     if (maxIndex < 0 || maxIndex >= labels.length) {
-      print('Invalid prediction index: $maxIndex');
       return 'Unknown';
     }
 
@@ -320,26 +269,16 @@ class ModelService {
 
   // Combined analysis: Use both ML model and RGB analysis for skin tone
   Map<String, dynamic> performCombinedSkinToneAnalysis(File imageFile) {
-    print('=== Starting Combined Skin Tone Analysis ===');
-    print(
-        'Model loaded status: Skin Tone=${isSkinToneModelLoaded}, Undertone=${isUnderToneModelLoaded}');
-
     // Get ML model prediction
     final mlPrediction = predictSkinTone(imageFile);
     String mlSkinTone = 'Unknown';
     if (mlPrediction != null) {
       mlSkinTone = getSkinToneLabel(mlPrediction);
-    } else {
-      print('ML prediction returned null for skin tone');
     }
-    print('ML Model Skin Tone Prediction: $mlSkinTone');
 
     // Get RGB-based analysis
     final rgbValues = extractAverageRGBValues(imageFile);
     final rgbSkinTone = determineSkinToneFromRGB(rgbValues);
-    print('RGB-based Skin Tone: $rgbSkinTone');
-    print('RGB values: $rgbValues');
-
     // Compare results and determine final skin tone
     String finalSkinTone;
     String confidence;
@@ -369,21 +308,16 @@ class ModelService {
 
   // Get undertone label from prediction
   String getUnderToneLabel(List<double> prediction) {
-    print('Raw undertone prediction values: $prediction');
-
     // Define your undertone labels based on your model's output
     // These labels should match what your model was trained on
     final labels = ['Cool', 'Warm', 'Neutral'];
 
     if (prediction.isEmpty) {
-      print('Empty prediction array received');
       return 'Unknown';
     }
 
     // Check if all values are zero or invalid
     if (prediction.every((val) => val <= 0.0)) {
-      print(
-          'All prediction values are zero or negative, using fallback: $prediction');
       // Return a default value instead of Unknown
       return 'Neutral'; // Default fallback for undertone
     }
@@ -392,10 +326,7 @@ class ModelService {
     final maxIndex =
         prediction.indexOf(prediction.reduce((a, b) => a > b ? a : b));
 
-    print('Max probability index: $maxIndex, value: ${prediction[maxIndex]}');
-
     if (maxIndex < 0 || maxIndex >= labels.length) {
-      print('Invalid prediction index: $maxIndex');
       return 'Unknown';
     }
 
@@ -513,24 +444,16 @@ class ModelService {
 
   // Combined analysis: Use both ML model and RGB analysis
   Map<String, dynamic> performCombinedUndertoneAnalysis(File imageFile) {
-    print('=== Starting Combined Undertone Analysis ===');
-
     // Get ML model prediction
     final mlPrediction = predictUnderTone(imageFile);
     String mlUndertone = 'Unknown';
     if (mlPrediction != null) {
       mlUndertone = getUnderToneLabel(mlPrediction);
-    } else {
-      print('ML prediction returned null for undertone');
     }
-    print('ML Model Undertone Prediction: $mlUndertone');
 
     // Get RGB-based analysis
     final rgbValues = extractAverageRGBValues(imageFile);
     final rgbUndertone = determineUndertoneFromRGB(rgbValues);
-    print('RGB-based Undertone: $rgbUndertone');
-    print('RGB values: $rgbValues');
-
     // Compare results and determine final undertone
     String finalUndertone;
     String confidence;

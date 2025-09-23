@@ -72,22 +72,10 @@ class _ImageResultPageState extends State<ImageResultPage> {
       _predictedSkinTone = combinedSkinToneAnalysis!['finalSkinTone'] as String;
       finalSkinTone = _predictedSkinTone!;
 
-      // Print ML model results for skin tone
-      print('=== ML MODEL SKIN TONE RESULT ===');
-      print(
-          'ML Skin Tone Prediction: ${combinedSkinToneAnalysis!['mlSkinTone']}');
-      print('====================================');
-
       // Use the combined analysis result for undertone
       _predictedUndertone =
           combinedUndertoneAnalysis!['finalUndertone'] as String;
       finalUndertone = _predictedUndertone!;
-
-      // Print ML model results for undertone
-      print('=== ML MODEL UNDERTONE RESULT ===');
-      print(
-          'ML Undertone Prediction: ${combinedUndertoneAnalysis!['mlUndertone']}');
-      print('=====================================');
 
       // Fetch makeup recommendations after analysis
       if (widget.preferences != null) {
@@ -208,8 +196,6 @@ class _ImageResultPageState extends State<ImageResultPage> {
   // Upload analysis data to Firestore
   Future<void> _uploadAnalysisData(String skinTone, String undertone) async {
     try {
-      print('Uploading analysis data to Firestore...');
-
       // Get recommended wardrobe colors based on undertone
       List<Map<String, String>> recommendedColors =
           _getRecommendedWardrobeColors();
@@ -253,10 +239,7 @@ class _ImageResultPageState extends State<ImageResultPage> {
 
       // Add the document to the 'user_analyses' collection
       await _firestore.collection('user_analyses').add(analysisData);
-
-      print('Analysis data successfully uploaded to Firestore');
     } catch (e) {
-      print('Error uploading analysis data to Firestore: $e');
       // We don't want to show an error to the user for this background operation
     }
   }
@@ -312,7 +295,6 @@ class _ImageResultPageState extends State<ImageResultPage> {
   Widget build(BuildContext context) {
     final isAsset = widget.imagePath.startsWith('assets/');
     final fileExists = isAsset ? true : File(widget.imagePath).existsSync();
-    print(widget.undertone);
     return Scaffold(
       backgroundColor: const Color(0xFFF4BBD3),
       body: SafeArea(
