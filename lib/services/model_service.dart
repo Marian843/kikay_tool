@@ -391,6 +391,12 @@ class ModelService {
     final warmScore = (red + green) / (2 * blue); // Higher means more warm
     final coolScore = blue / ((red + green) / 2); // Higher means more cool
 
+    // Calculate normalized values to account for lighting differences
+    final total = red + green + blue;
+    final normalizedRed = red / total;
+    final normalizedGreen = green / total;
+    final normalizedBlue = blue / total;
+
     // Determine undertone based on color dominance
     String undertone;
     String reasoning;
@@ -432,12 +438,39 @@ class ModelService {
       undertone = 'Cool';
       reasoning = 'Blue significantly higher than red indicates cool undertone';
     }
+    // More nuanced checks using normalized values
+    else if (normalizedRed > 0.35 &&
+        normalizedGreen > 0.32 &&
+        normalizedBlue < 0.33) {
+      // High red and green with lower blue indicates warm
+      undertone = 'Warm';
+      reasoning =
+          'High normalized red and green values indicate warm undertone';
+    } else if (normalizedBlue > 0.35 &&
+        normalizedRed < 0.33 &&
+        normalizedGreen < 0.33) {
+      // High blue with lower red and green indicates cool
+      undertone = 'Cool';
+      reasoning = 'High normalized blue value indicates cool undertone';
+    } else if ((normalizedRed - normalizedBlue).abs() < 0.03 &&
+        (normalizedGreen - normalizedBlue).abs() < 0.03) {
+      // All RGB values are very balanced
+      undertone = 'Neutral';
+      reasoning = 'Very balanced RGB values indicate neutral undertone';
+    }
     // Default to neutral if unclear
     else {
       undertone = 'Neutral';
       reasoning =
           'RGB ratios are inconclusive, defaulting to neutral undertone';
     }
+
+    print('RGB Undertone Analysis: $undertone - $reasoning');
+    print('RGB Values: R=$red, G=$green, B=$blue');
+    print('Ratios: RG=$redGreenRatio, RB=$redBlueRatio, GB=$greenBlueRatio');
+    print('Scores: Warm=$warmScore, Cool=$coolScore');
+    print(
+        'Normalized: R=$normalizedRed, G=$normalizedGreen, B=$normalizedBlue');
 
     return undertone;
   }
@@ -449,25 +482,65 @@ class ModelService {
     String mlUndertone = 'Unknown';
     if (mlPrediction != null) {
       mlUndertone = getUnderToneLabel(mlPrediction);
+      print('ML Undertone Prediction: $mlUndertone with values: $mlPrediction');
     }
 
     // Get RGB-based analysis
     final rgbValues = extractAverageRGBValues(imageFile);
     final rgbUndertone = determineUndertoneFromRGB(rgbValues);
+    print('RGB Undertone Analysis: $rgbUndertone with values: $rgbValues');
+
     // Compare results and determine final undertone
     String finalUndertone;
     String confidence;
 
     if (mlUndertone != 'Unknown' && mlUndertone == rgbUndertone) {
+      // Both analyses agree
       finalUndertone = mlUndertone;
       confidence = 'High';
-    } else if (mlUndertone != 'Unknown') {
-      finalUndertone = mlUndertone;
-      confidence = 'Medium';
-    } else {
-      // Fallback to RGB when ML fails
+      print('Both ML and RGB agree on undertone: $finalUndertone');
+    } else if (mlUndertone != 'Unknown' && rgbUndertone != 'Unknown') {
+      // Analyses disagree - use a weighted approach based on confidence
+      // For undertone, RGB analysis is often more reliable than the ML model
+      // So we'll prefer RGB unless ML has very high confidence
+
+      // Check ML prediction confidence
+      double mlConfidence = 0.0;
+      if (mlPrediction != null && mlPrediction.isNotEmpty) {
+        final maxVal = mlPrediction.reduce((a, b) => a > b ? a : b);
+        final secondMaxVal = mlPrediction
+            .where((val) => val != maxVal)
+            .reduce((a, b) => a > b ? a : b);
+        mlConfidence =
+            maxVal - secondMaxVal; // Difference between top two predictions
+        print('ML confidence score: $mlConfidence');
+      }
+
+      // If ML has high confidence (> 0.3 difference), use ML, otherwise use RGB
+      if (mlConfidence > 0.3) {
+        finalUndertone = mlUndertone;
+        confidence = 'ML-High';
+        print('Using ML prediction with high confidence: $finalUndertone');
+      } else {
+        finalUndertone = rgbUndertone;
+        confidence = 'RGB-Preferred';
+        print('Using RGB prediction due to low ML confidence: $finalUndertone');
+      }
+    } else if (rgbUndertone != 'Unknown') {
+      // Only RGB analysis is available
       finalUndertone = rgbUndertone;
       confidence = 'RGB-Based';
+      print('Using RGB-based analysis: $finalUndertone');
+    } else if (mlUndertone != 'Unknown') {
+      // Only ML analysis is available
+      finalUndertone = mlUndertone;
+      confidence = 'ML-Based';
+      print('Using ML-based analysis: $finalUndertone');
+    } else {
+      // Both failed - default to neutral
+      finalUndertone = 'Neutral';
+      confidence = 'Default';
+      print('Both analyses failed, defaulting to: $finalUndertone');
     }
 
     final result = {
@@ -478,6 +551,7 @@ class ModelService {
       'rgbValues': rgbValues,
     };
 
+    print('Final undertone result: $result');
     return result;
   }
 }

@@ -97,8 +97,12 @@ class _ImageResultPageState extends State<ImageResultPage> {
   }
 
   Future<void> _fetchRecommendations(String skinTone, String undertone) async {
-    if (widget.preferences == null) return;
+    if (widget.preferences == null) {
+      print('No preferences provided, skipping recommendations');
+      return;
+    }
 
+    print('Fetching recommendations...');
     setState(() {
       _isLoadingRecommendations = true;
     });
@@ -114,22 +118,38 @@ class _ImageResultPageState extends State<ImageResultPage> {
               ? widget.undertone
               : 'Neutral'))!;
 
+      print('Using skinTone: $actualSkinTone, undertone: $actualUndertone');
+      print('Preferences: ${widget.preferences}');
+
       final recommendations = await _makeupService.getRecommendedProducts(
         preferences: widget.preferences!,
         skinTone: actualSkinTone,
         undertone: actualUndertone,
-        limit: 3, // Get 3 products per category
+        limit: 5, // Get 5 products per category
       );
+
+      print('Received recommendations: ${recommendations.keys}');
 
       setState(() {
         _recommendations = recommendations;
         _isLoadingRecommendations = false;
       });
 
+      print('Recommendations loaded successfully');
+    } catch (e) {
+      print('Error fetching recommendations: $e');
       setState(() {
         _isLoadingRecommendations = false;
       });
-    } catch (e) {}
+
+      // Show error message to user
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error loading recommendations: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   // Get recommended wardrobe colors based on undertone
