@@ -93,6 +93,9 @@ class MakeupService {
   }) async {
     try {
       Map<String, List<MakeupProduct>> recommendations = {};
+      // Track product IDs that have already been assigned to a category
+      Set<String> usedProductIds = {};
+
       print(
           'Getting recommended products for skinTone: $skinTone, undertone: $undertone');
 
@@ -109,34 +112,66 @@ class MakeupService {
           final mapping = preferenceMappings[prefKey];
           if (mapping != null) {
             print('Fetching products for ${mapping['displayName']}...');
-            final products = await _fetchProductsForType(
+
+            // Get available products for this type
+            List<MakeupProduct> availableProducts = await _fetchProductsForType(
               collectionName: mapping['collection']!,
               makeupType: mapping['type']!,
               skinTone: skinTone,
               undertone: undertone,
-              limit: limit,
+              limit: limit * 2, // Get more initially to account for filtering
             );
 
-            print(
-                'Found ${products.length} products for ${mapping['displayName']}');
+            // Filter out products that have already been used in other categories
+            List<MakeupProduct> filteredProducts = [];
+            for (var product in availableProducts) {
+              if (!usedProductIds.contains(product.id)) {
+                filteredProducts.add(product);
+                usedProductIds.add(product.id);
 
-            if (products.isNotEmpty) {
-              recommendations[mapping['displayName']!] = products;
+                // Stop when we have enough products
+                if (filteredProducts.length >= limit) {
+                  break;
+                }
+              }
+            }
+
+            print(
+                'Found ${filteredProducts.length} unique products for ${mapping['displayName']}');
+
+            if (filteredProducts.isNotEmpty) {
+              recommendations[mapping['displayName']!] = filteredProducts;
             } else {
               print(
                   'No products found for ${mapping['displayName']}, trying fallback...');
               // Try fallback: get any products of this type regardless of skin tone/undertone
-              final fallbackProducts = await _getAnyProductsOfType(
+              List<MakeupProduct> fallbackProducts =
+                  await _getAnyProductsOfType(
                 collectionName: mapping['collection']!,
                 makeupType: mapping['type']!,
-                limit: limit,
+                limit: limit * 2, // Get more initially to account for filtering
               );
 
-              print(
-                  'Found ${fallbackProducts.length} fallback products for ${mapping['displayName']}');
+              // Filter out products that have already been used
+              List<MakeupProduct> filteredFallbackProducts = [];
+              for (var product in fallbackProducts) {
+                if (!usedProductIds.contains(product.id)) {
+                  filteredFallbackProducts.add(product);
+                  usedProductIds.add(product.id);
 
-              if (fallbackProducts.isNotEmpty) {
-                recommendations[mapping['displayName']!] = fallbackProducts;
+                  // Stop when we have enough products
+                  if (filteredFallbackProducts.length >= limit) {
+                    break;
+                  }
+                }
+              }
+
+              print(
+                  'Found ${filteredFallbackProducts.length} unique fallback products for ${mapping['displayName']}');
+
+              if (filteredFallbackProducts.isNotEmpty) {
+                recommendations[mapping['displayName']!] =
+                    filteredFallbackProducts;
               }
             }
           }
