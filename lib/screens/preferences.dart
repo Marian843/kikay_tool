@@ -132,10 +132,6 @@ class _PreferencesPageState extends State<PreferencesPage> {
     // Get the image path from the route arguments
     final imagePath = ModalRoute.of(context)?.settings.arguments as String?;
 
-    print('PreferencesPage build called');
-    print('Image path: $imagePath');
-    print('Current preferences: ${_preferences.toMap()}');
-
     return Scaffold(
       backgroundColor: const Color(0xFFF4BBD3),
       body: SafeArea(
@@ -289,17 +285,12 @@ class _PreferencesPageState extends State<PreferencesPage> {
               ElevatedButton(
                 onPressed: widget.onPressed ??
                     () {
-                      print('Discover Your Best Shades button pressed');
-                      print(
-                          'Final preferences before navigation: ${_preferences.toMap()}');
-
                       // Count selected items
                       int selectedCount = 0;
                       final prefsMap = _preferences.toMap();
                       prefsMap.forEach((key, value) {
                         if (value) selectedCount++;
                       });
-                      print('Number of selected preferences: $selectedCount');
 
                       // Don't hardcode skinTone and undertone values
                       // Let the ML model determine these values in the output page

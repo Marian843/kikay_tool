@@ -36,6 +36,10 @@ class _ImageResultPageState extends State<ImageResultPage> {
   Map<String, List<MakeupProduct>> _recommendations = {};
   bool _isLoadingRecommendations = false;
 
+  // Variables to store combined analysis results
+  Map<String, dynamic>? combinedSkinToneAnalysis;
+  Map<String, dynamic>? combinedUndertoneAnalysis;
+
   @override
   void initState() {
     super.initState();
@@ -44,27 +48,8 @@ class _ImageResultPageState extends State<ImageResultPage> {
 
   Future<void> _analyzeImage() async {
     try {
-      print('Starting image analysis...');
-
-      // Debug: Print all widget properties
-      print('Image path: ${widget.imagePath}');
-      print('Skin tone: ${widget.skinTone}');
-      print('Undertone: ${widget.undertone}');
-      print('Preferences: ${widget.preferences}');
-      print('Preferences type: ${widget.preferences?.runtimeType}');
-
-      // Additional debugging
-      if (widget.preferences != null) {
-        print('Preferences keys: ${widget.preferences!.keys}');
-        print('Preferences values: ${widget.preferences!.values}');
-        widget.preferences!.forEach((key, value) {
-          print('Preference $key: $value');
-        });
-      }
-
       // Check if the image file exists
       if (!File(widget.imagePath).existsSync()) {
-        print('Image file does not exist: ${widget.imagePath}');
         setState(() {
           _isLoading = false;
           _errorMessage = 'Image file not found';
@@ -72,37 +57,37 @@ class _ImageResultPageState extends State<ImageResultPage> {
         return;
       }
 
-      print('Running combined skin tone analysis...');
       // Use combined RGB and ML analysis for skin tone determination
-      final combinedSkinToneAnalysis = widget.modelService
+      combinedSkinToneAnalysis = widget.modelService
           .performCombinedSkinToneAnalysis(File(widget.imagePath));
 
-      print('Running combined undertone analysis...');
       // Use combined RGB and ML analysis for undertone determination
-      final combinedUndertoneAnalysis = widget.modelService
+      combinedUndertoneAnalysis = widget.modelService
           .performCombinedUndertoneAnalysis(File(widget.imagePath));
 
       String finalSkinTone = widget.skinTone;
       String finalUndertone = widget.undertone;
 
       // Use combined analysis results
-      _predictedSkinTone = combinedSkinToneAnalysis['finalSkinTone'] as String;
+      _predictedSkinTone = combinedSkinToneAnalysis!['finalSkinTone'] as String;
       finalSkinTone = _predictedSkinTone!;
-      print('Combined skin tone analysis: $_predictedSkinTone');
-      print('ML Skin Tone: ${combinedSkinToneAnalysis['mlSkinTone']}');
-      print('RGB Skin Tone: ${combinedSkinToneAnalysis['rgbSkinTone']}');
-      print('Confidence: ${combinedSkinToneAnalysis['confidence']}');
+
+      // Print ML model results for skin tone
+      print('=== ML MODEL SKIN TONE RESULT ===');
+      print(
+          'ML Skin Tone Prediction: ${combinedSkinToneAnalysis!['mlSkinTone']}');
+      print('====================================');
 
       // Use the combined analysis result for undertone
-      _predictedUndertone = combinedUndertoneAnalysis['finalUndertone'] as String;
+      _predictedUndertone =
+          combinedUndertoneAnalysis!['finalUndertone'] as String;
       finalUndertone = _predictedUndertone!;
 
-      print('Combined Undertone Analysis Results:');
-      print('ML Model Undertone: ${combinedUndertoneAnalysis['mlUndertone']}');
-      print('RGB-based Undertone: ${combinedUndertoneAnalysis['rgbUndertone']}');
-      print('Final Undertone: $_predictedUndertone');
-      print('Confidence: ${combinedUndertoneAnalysis['confidence']}');
-      print('RGB Values: ${combinedUndertoneAnalysis['rgbValues']}');
+      // Print ML model results for undertone
+      print('=== ML MODEL UNDERTONE RESULT ===');
+      print(
+          'ML Undertone Prediction: ${combinedUndertoneAnalysis!['mlUndertone']}');
+      print('=====================================');
 
       // Fetch makeup recommendations after analysis
       if (widget.preferences != null) {
@@ -116,7 +101,6 @@ class _ImageResultPageState extends State<ImageResultPage> {
         _isLoading = false;
       });
     } catch (e) {
-      print('Error analyzing image: $e');
       setState(() {
         _isLoading = false;
         _errorMessage = 'Error analyzing image: $e';
@@ -133,11 +117,14 @@ class _ImageResultPageState extends State<ImageResultPage> {
 
     try {
       // Use the actual detected values, not the initial widget values
-      final actualSkinTone = (_predictedSkinTone?.isNotEmpty == true ? _predictedSkinTone : (widget.skinTone.isNotEmpty == true ? widget.skinTone : 'Medium'))!;
-      final actualUndertone = (_predictedUndertone?.isNotEmpty == true ? _predictedUndertone : (widget.undertone.isNotEmpty == true ? widget.undertone : 'Neutral'))!;
-
-      print(
-          'Using actual values - Skin Tone: $actualSkinTone, Undertone: $actualUndertone');
+      final actualSkinTone = (_predictedSkinTone?.isNotEmpty == true
+          ? _predictedSkinTone
+          : (widget.skinTone.isNotEmpty == true ? widget.skinTone : 'Medium'))!;
+      final actualUndertone = (_predictedUndertone?.isNotEmpty == true
+          ? _predictedUndertone
+          : (widget.undertone.isNotEmpty == true
+              ? widget.undertone
+              : 'Neutral'))!;
 
       final recommendations = await _makeupService.getRecommendedProducts(
         preferences: widget.preferences!,
@@ -151,13 +138,10 @@ class _ImageResultPageState extends State<ImageResultPage> {
         _isLoadingRecommendations = false;
       });
 
-      print('Fetched ${recommendations.length} categories of recommendations');
-    } catch (e) {
-      print('Error fetching recommendations: $e');
       setState(() {
         _isLoadingRecommendations = false;
       });
-    }
+    } catch (e) {}
   }
 
   // Get recommended wardrobe colors based on undertone
@@ -247,9 +231,15 @@ class _ImageResultPageState extends State<ImageResultPage> {
       });
 
       // Create a map of the analysis data with consistent values
-      final finalSkinTone = (_predictedSkinTone?.isNotEmpty == true ? _predictedSkinTone : (widget.skinTone.isNotEmpty == true ? widget.skinTone : 'Medium'))!;
-      final finalUndertone = (_predictedUndertone?.isNotEmpty == true ? _predictedUndertone : (widget.undertone.isNotEmpty == true ? widget.undertone : 'Neutral'))!;
-      
+      final finalSkinTone = (_predictedSkinTone?.isNotEmpty == true
+          ? _predictedSkinTone
+          : (widget.skinTone.isNotEmpty == true ? widget.skinTone : 'Medium'))!;
+      final finalUndertone = (_predictedUndertone?.isNotEmpty == true
+          ? _predictedUndertone
+          : (widget.undertone.isNotEmpty == true
+              ? widget.undertone
+              : 'Neutral'))!;
+
       Map<String, dynamic> analysisData = {
         'timestamp': FieldValue.serverTimestamp(),
         'skinTone': finalSkinTone,

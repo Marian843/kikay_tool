@@ -42,10 +42,7 @@ class CsvFirestoreService {
           await collection.add(documentData);
         }
       }
-
-      print('Successfully uploaded data from $assetPath to $collectionName');
     } catch (e) {
-      print('Error uploading CSV to Firestore: $e');
       rethrow;
     }
   }
@@ -57,10 +54,7 @@ class CsvFirestoreService {
       await uploadCsvToFirestore('assets/Blush.csv', 'blush_makeup');
       await uploadCsvToFirestore('assets/Eye.csv', 'eye_makeup');
       await uploadCsvToFirestore('assets/Lip.csv', 'lip_makeup');
-
-      print('All makeup data uploaded successfully');
     } catch (e) {
-      print('Error uploading makeup data: $e');
       rethrow;
     }
   }

@@ -94,24 +94,17 @@ class MakeupService {
     try {
       Map<String, List<MakeupProduct>> recommendations = {};
 
-      print(
-          'Fetching recommendations for skinTone: $skinTone, undertone: $undertone');
-      print('Selected preferences: $preferences');
-
-      // Count and show actual selected preferences
+      // Count actual selected preferences
       final selectedPrefs = preferences.entries
           .where((e) => e.value == true)
           .map((e) => e.key)
           .toList();
-      print('Actually selected preferences: $selectedPrefs');
 
       // Process each selected preference
       for (String prefKey in preferences.keys) {
         if (preferences[prefKey] == true) {
           final mapping = preferenceMappings[prefKey];
           if (mapping != null) {
-            print('Fetching ${mapping['type']} from ${mapping['collection']}');
-
             final products = await _fetchProductsForType(
               collectionName: mapping['collection']!,
               makeupType: mapping['type']!,
@@ -120,9 +113,6 @@ class MakeupService {
               limit: limit,
             );
 
-            print(
-                'Found ${products.length} products for ${mapping['displayName']}');
-
             if (products.isNotEmpty) {
               recommendations[mapping['displayName']!] = products;
             }
@@ -130,10 +120,8 @@ class MakeupService {
         }
       }
 
-      print('Final recommendations: ${recommendations.keys}');
       return recommendations;
     } catch (e) {
-      print('Error fetching recommended products: $e');
       return {};
     }
   }
@@ -177,8 +165,6 @@ class MakeupService {
         }
       } catch (e) {
         // Fallback: get all products from the collection and filter in memory
-        print(
-            'Error with Firestore query, falling back to memory filtering: $e');
         final allProducts = await _getAllProductsFromCollection(collectionName);
         return _filterProductsInMemory(
             allProducts, makeupType, skinTone, undertone, isBaseProduct, limit);
@@ -193,7 +179,6 @@ class MakeupService {
           .map((doc) => MakeupProduct.fromFirestore(doc.data(), doc.id))
           .toList();
     } catch (e) {
-      print('Error fetching products from $collectionName: $e');
       return [];
     }
   }
@@ -206,7 +191,6 @@ class MakeupService {
           .map((doc) => MakeupProduct.fromFirestore(doc.data(), doc.id))
           .toList();
     } catch (e) {
-      print('Error fetching all products from $collectionName: $e');
       return [];
     }
   }
@@ -233,7 +217,6 @@ class MakeupService {
           .map((doc) => MakeupProduct.fromFirestore(doc.data(), doc.id))
           .toList();
     } catch (e) {
-      print('Error searching products: $e');
       return [];
     }
   }
@@ -247,7 +230,6 @@ class MakeupService {
           .map((doc) => MakeupProduct.fromFirestore(doc.data(), doc.id))
           .toList();
     } catch (e) {
-      print('Error getting all products from $collectionName: $e');
       return [];
     }
   }
@@ -288,7 +270,6 @@ class MakeupService {
 
       return filtered.take(limit).toList();
     } catch (e) {
-      print('Error filtering products in memory: $e');
       return [];
     }
   }
