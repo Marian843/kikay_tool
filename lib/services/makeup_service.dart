@@ -40,14 +40,12 @@ class MakeupService {
     'highlighter': {
       'collection': blushCollection,
       'type': 'highlighter',
-      'displayName': 'Blush', // Show in Blush category
-      'originalType': 'highlighter', // Store original type for filtering
+      'displayName': 'Highlighter',
     },
     'bronzer': {
       'collection': blushCollection,
       'type': 'bronzer',
-      'displayName': 'Blush', // Show in Blush category
-      'originalType': 'bronzer', // Store original type for filtering
+      'displayName': 'Bronzer',
     },
     'eyeshadow': {
       'collection': eyeCollection,
@@ -108,118 +106,8 @@ class MakeupService {
           .toList();
       print('Selected preferences: $selectedPrefs');
 
-      // Special handling for blush category - consolidate blush, highlighter, and bronzer
-      bool hasBlushProducts = preferences['blush'] == true;
-      bool hasHighlighterProducts = preferences['highlighter'] == true;
-      bool hasBronzerProducts = preferences['bronzer'] == true;
-
-      // If any of the blush category products are selected, process them together
-      if (hasBlushProducts || hasHighlighterProducts || hasBronzerProducts) {
-        print('Processing consolidated blush category...');
-
-        List<MakeupProduct> consolidatedBlushProducts = [];
-
-        // Get products for each type in the blush category
-        if (hasBlushProducts) {
-          print('Fetching blush products...');
-          List<MakeupProduct> blushProducts = await _fetchProductsForType(
-            collectionName: blushCollection,
-            makeupType: 'blush',
-            skinTone: skinTone,
-            undertone: undertone,
-            limit: limit, // Get limit for each type
-          );
-          consolidatedBlushProducts.addAll(blushProducts);
-        }
-
-        if (hasHighlighterProducts) {
-          print('Fetching highlighter products...');
-          List<MakeupProduct> highlighterProducts = await _fetchProductsForType(
-            collectionName: blushCollection,
-            makeupType: 'highlighter',
-            skinTone: skinTone,
-            undertone: undertone,
-            limit: limit, // Get limit for each type
-          );
-          consolidatedBlushProducts.addAll(highlighterProducts);
-        }
-
-        if (hasBronzerProducts) {
-          print('Fetching bronzer products...');
-          List<MakeupProduct> bronzerProducts = await _fetchProductsForType(
-            collectionName: blushCollection,
-            makeupType: 'bronzer',
-            skinTone: skinTone,
-            undertone: undertone,
-            limit: limit, // Get limit for each type
-          );
-          consolidatedBlushProducts.addAll(bronzerProducts);
-        }
-
-        // If we don't have enough products, try fallback for each type
-        if (consolidatedBlushProducts.length < limit) {
-          print('Not enough products in blush category, trying fallback...');
-
-          if (hasBlushProducts) {
-            List<MakeupProduct> blushFallback = await _getAnyProductsOfType(
-              collectionName: blushCollection,
-              makeupType: 'blush',
-              limit: limit,
-            );
-            consolidatedBlushProducts.addAll(blushFallback);
-          }
-
-          if (hasHighlighterProducts) {
-            List<MakeupProduct> highlighterFallback =
-                await _getAnyProductsOfType(
-              collectionName: blushCollection,
-              makeupType: 'highlighter',
-              limit: limit,
-            );
-            consolidatedBlushProducts.addAll(highlighterFallback);
-          }
-
-          if (hasBronzerProducts) {
-            List<MakeupProduct> bronzerFallback = await _getAnyProductsOfType(
-              collectionName: blushCollection,
-              makeupType: 'bronzer',
-              limit: limit,
-            );
-            consolidatedBlushProducts.addAll(bronzerFallback);
-          }
-        }
-
-        // Remove duplicates and limit to the desired number
-        List<MakeupProduct> uniqueBlushProducts = [];
-        for (var product in consolidatedBlushProducts) {
-          if (!usedProductIds.contains(product.id)) {
-            uniqueBlushProducts.add(product);
-            usedProductIds.add(product.id);
-
-            // Stop when we have enough products
-            if (uniqueBlushProducts.length >= limit) {
-              break;
-            }
-          }
-        }
-
-        print(
-            'Found ${uniqueBlushProducts.length} unique products for Blush category');
-
-        if (uniqueBlushProducts.isNotEmpty) {
-          recommendations['Blush'] = uniqueBlushProducts;
-        }
-      }
-
-      // Process other selected preferences (excluding blush, highlighter, bronzer)
+      // Process each selected preference
       for (String prefKey in preferences.keys) {
-        // Skip blush, highlighter, and bronzer as they're processed together above
-        if (prefKey == 'blush' ||
-            prefKey == 'highlighter' ||
-            prefKey == 'bronzer') {
-          continue;
-        }
-
         if (preferences[prefKey] == true) {
           final mapping = preferenceMappings[prefKey];
           if (mapping != null) {
@@ -401,25 +289,71 @@ class MakeupService {
     required int limit,
   }) async {
     try {
+      print(
+          '_tryExactMatch called with collection: $collectionName, type: $makeupType, skinTone: $skinTone, undertone: $undertone, isBaseProduct: $isBaseProduct');
+
       Query query = _firestore.collection(collectionName);
 
       if (isBaseProduct) {
         // For base products, match both skin tone and undertone
+        print(
+            'Querying base products with skin tone: $skinTone and undertone: $undertone');
         query = query
             .where('Skintone', isEqualTo: skinTone)
             .where('Undertone', isEqualTo: undertone);
       } else {
         // For other products (eye, lip, blush), match undertone only
+        print('Querying non-base products with undertone: $undertone');
         query = query.where('Undertone', isEqualTo: undertone);
       }
 
       // Filter by makeup type if specified
       if (makeupType != 'all') {
-        query = query.where('Makeup_Type', isEqualTo: makeupType);
+        print('Adding makeup type filter: $makeupType');
+
+        // Special handling for blush, highlighter, and bronzer
+        // These might be stored with different casing or spacing in the database
+        if (['blush', 'highlighter', 'bronzer']
+            .contains(makeupType.toLowerCase())) {
+          // Try the exact match first
+          query = query.where('Makeup_Type', isEqualTo: makeupType);
+
+          query = query.limit(limit);
+          print('Executing Firestore query for exact match...');
+          final snapshot = await query.get();
+          print('Query completed with ${snapshot.docs.length} results');
+
+          if (snapshot.docs.isNotEmpty) {
+            return snapshot.docs
+                .map((doc) => MakeupProduct.fromFirestore(doc.data(), doc.id))
+                .toList();
+          }
+
+          // If no exact match, try case-insensitive by getting all and filtering in memory
+          print('No exact match found, trying case-insensitive match...');
+          final allSnapshot = await _firestore.collection(collectionName).get();
+          final filtered = allSnapshot.docs
+              .where((doc) {
+                final productType =
+                    (doc.data()['Makeup_Type'] as String? ?? '').toLowerCase();
+                return productType == makeupType.toLowerCase();
+              })
+              .take(limit)
+              .toList();
+
+          print('Case-insensitive match found ${filtered.length} results');
+          return filtered
+              .map((doc) => MakeupProduct.fromFirestore(doc.data(), doc.id))
+              .toList();
+        } else {
+          query = query.where('Makeup_Type', isEqualTo: makeupType);
+        }
       }
 
       query = query.limit(limit);
+      print('Executing Firestore query...');
       final snapshot = await query.get();
+      print('Query completed with ${snapshot.docs.length} results');
 
       return snapshot.docs
           .map((doc) => MakeupProduct.fromFirestore(doc.data(), doc.id))
@@ -440,9 +374,15 @@ class MakeupService {
     required int limit,
   }) async {
     try {
+      print('Trying flexible match...');
       final allProducts = await _getAllProductsFromCollection(collectionName);
-      return _filterProductsInMemory(
+      print('Retrieved ${allProducts.length} products for flexible matching');
+
+      final filtered = _filterProductsInMemory(
           allProducts, makeupType, skinTone, undertone, isBaseProduct, limit);
+
+      print('Flexible match returned ${filtered.length} products');
+      return filtered;
     } catch (e) {
       print('Error in flexible match: $e');
       return [];
@@ -566,8 +506,15 @@ class MakeupService {
     int limit,
   ) {
     try {
+      print(
+          '_filterProductsInMemory called with type: $makeupType, skinTone: $skinTone, undertone: $undertone, isBaseProduct: $isBaseProduct');
+      print('Filtering ${products.length} products');
+
       // Create a list to store products with their match scores
       List<MapEntry<MakeupProduct, int>> scoredProducts = [];
+      int typeMatches = 0;
+      int undertoneMatches = 0;
+      int skinToneMatches = 0;
 
       for (var product in products) {
         int score = 0;
@@ -577,23 +524,44 @@ class MakeupService {
                 .toLowerCase()
                 .contains(makeupType.toLowerCase()) ||
             makeupType.toLowerCase().contains(product.makeupType.toLowerCase());
-        if (typeMatch) score += 10;
+        if (typeMatch) {
+          score += 10;
+          typeMatches++;
+          print(
+              'Type match for ${product.makeupType} - ${product.productName}');
+        }
 
         // Undertone matching (high priority)
         bool undertoneMatch = _isUndertoneMatch(product.undertone, undertone);
-        if (undertoneMatch) score += 8;
+        if (undertoneMatch) {
+          score += 8;
+          undertoneMatches++;
+          print(
+              'Undertone match for ${product.undertone} - ${product.productName}');
+        }
 
         // Skin tone matching (for base products only)
         if (isBaseProduct && product.skinTone != null) {
           bool skinToneMatch = _isSkinToneMatch(product.skinTone!, skinTone);
-          if (skinToneMatch) score += 5;
+          if (skinToneMatch) {
+            score += 5;
+            skinToneMatches++;
+            print(
+                'Skin tone match for ${product.skinTone} - ${product.productName}');
+          }
         }
 
         // Only add products that at least match the type
         if (typeMatch) {
           scoredProducts.add(MapEntry(product, score));
+          print(
+              'Added product with score $score: ${product.makeupType} - ${product.productName}');
         }
       }
+
+      print(
+          'Filtering results: $typeMatches type matches, $undertoneMatches undertone matches, $skinToneMatches skin tone matches');
+      print('Found ${scoredProducts.length} products that match type');
 
       // Sort by score (highest first)
       scoredProducts.sort((a, b) => b.value.compareTo(a.value));
@@ -612,12 +580,21 @@ class MakeupService {
     String normalizedProduct = productUndertone.toLowerCase().trim();
     String normalizedTarget = targetUndertone.toLowerCase().trim();
 
+    print(
+        'Checking undertone match: product="$productUndertone" vs target="$targetUndertone"');
+
     // Direct match
-    if (normalizedProduct == normalizedTarget) return true;
+    if (normalizedProduct == normalizedTarget) {
+      print('Direct undertone match found');
+      return true;
+    }
 
     // Check if product undertone contains target undertone or vice versa
     if (normalizedProduct.contains(normalizedTarget) ||
-        normalizedTarget.contains(normalizedProduct)) return true;
+        normalizedTarget.contains(normalizedProduct)) {
+      print('Partial undertone match found');
+      return true;
+    }
 
     // Handle special cases for mixed undertones
     List<String> productParts =
@@ -625,16 +602,21 @@ class MakeupService {
     List<String> targetParts =
         normalizedTarget.split(',').map((e) => e.trim()).toList();
 
+    print('Product parts: $productParts, Target parts: $targetParts');
+
     // Check if any part matches
     for (var productPart in productParts) {
       for (var targetPart in targetParts) {
         if (productPart.contains(targetPart) ||
             targetPart.contains(productPart)) {
+          print(
+              'Part-based undertone match found: $productPart vs $targetPart');
           return true;
         }
       }
     }
 
+    print('No undertone match found');
     return false;
   }
 
