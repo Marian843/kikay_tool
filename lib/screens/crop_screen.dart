@@ -29,13 +29,7 @@ class _CropScreenState extends State<CropScreen> {
     try {
       final croppedFile = await ImageCropper().cropImage(
         sourcePath: widget.imagePath,
-        aspectRatioPresets: [
-          CropAspectRatioPreset.square,
-          CropAspectRatioPreset.ratio3x2,
-          CropAspectRatioPreset.original,
-          CropAspectRatioPreset.ratio4x3,
-          CropAspectRatioPreset.ratio16x9
-        ],
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
         uiSettings: [
           AndroidUiSettings(
             toolbarTitle: 'Crop Your Photo',

@@ -475,7 +475,7 @@ class ModelService {
     return undertone;
   }
 
-  // Combined analysis: Use both ML model and RGB analysis
+  // ML-based analysis: Use only ML model for undertone prediction
   Map<String, dynamic> performCombinedUndertoneAnalysis(File imageFile) {
     // Get ML model prediction
     final mlPrediction = predictUnderTone(imageFile);
@@ -485,70 +485,26 @@ class ModelService {
       print('ML Undertone Prediction: $mlUndertone with values: $mlPrediction');
     }
 
-    // Get RGB-based analysis
-    final rgbValues = extractAverageRGBValues(imageFile);
-    final rgbUndertone = determineUndertoneFromRGB(rgbValues);
-    print('RGB Undertone Analysis: $rgbUndertone with values: $rgbValues');
-
-    // Compare results and determine final undertone
+    // Determine final undertone based only on ML prediction
     String finalUndertone;
     String confidence;
 
-    if (mlUndertone != 'Unknown' && mlUndertone == rgbUndertone) {
-      // Both analyses agree
-      finalUndertone = mlUndertone;
-      confidence = 'High';
-      print('Both ML and RGB agree on undertone: $finalUndertone');
-    } else if (mlUndertone != 'Unknown' && rgbUndertone != 'Unknown') {
-      // Analyses disagree - use a weighted approach based on confidence
-      // For undertone, RGB analysis is often more reliable than the ML model
-      // So we'll prefer RGB unless ML has very high confidence
-
-      // Check ML prediction confidence
-      double mlConfidence = 0.0;
-      if (mlPrediction != null && mlPrediction.isNotEmpty) {
-        final maxVal = mlPrediction.reduce((a, b) => a > b ? a : b);
-        final secondMaxVal = mlPrediction
-            .where((val) => val != maxVal)
-            .reduce((a, b) => a > b ? a : b);
-        mlConfidence =
-            maxVal - secondMaxVal; // Difference between top two predictions
-        print('ML confidence score: $mlConfidence');
-      }
-
-      // If ML has high confidence (> 0.3 difference), use ML, otherwise use RGB
-      if (mlConfidence > 0.3) {
-        finalUndertone = mlUndertone;
-        confidence = 'ML-High';
-        print('Using ML prediction with high confidence: $finalUndertone');
-      } else {
-        finalUndertone = rgbUndertone;
-        confidence = 'RGB-Preferred';
-        print('Using RGB prediction due to low ML confidence: $finalUndertone');
-      }
-    } else if (rgbUndertone != 'Unknown') {
-      // Only RGB analysis is available
-      finalUndertone = rgbUndertone;
-      confidence = 'RGB-Based';
-      print('Using RGB-based analysis: $finalUndertone');
-    } else if (mlUndertone != 'Unknown') {
-      // Only ML analysis is available
+    if (mlUndertone != 'Unknown') {
+      // Use ML prediction directly
       finalUndertone = mlUndertone;
       confidence = 'ML-Based';
       print('Using ML-based analysis: $finalUndertone');
     } else {
-      // Both failed - default to neutral
+      // ML failed - default to neutral
       finalUndertone = 'Neutral';
       confidence = 'Default';
-      print('Both analyses failed, defaulting to: $finalUndertone');
+      print('ML analysis failed, defaulting to: $finalUndertone');
     }
 
     final result = {
       'mlUndertone': mlUndertone,
-      'rgbUndertone': rgbUndertone,
       'finalUndertone': finalUndertone,
       'confidence': confidence,
-      'rgbValues': rgbValues,
     };
 
     print('Final undertone result: $result');

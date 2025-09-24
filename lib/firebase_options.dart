@@ -17,29 +17,17 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for ios - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return ios;
       case TargetPlatform.macOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for macos - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return macos;
       case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for windows - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return windows;
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -53,10 +41,47 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-      apiKey: "AIzaSyDKuZbF7MtcwMn3htNeeuugAZQCxBNBub4",
-      authDomain: "kikay-c23f6.firebaseapp.com",
-      projectId: "kikay-c23f6",
-      storageBucket: "kikay-c23f6.firebasestorage.app",
-      messagingSenderId: "1092747732398",
-      appId: "1:1092747732398:web:dfbe4e207be7be10f0d43f");
+    apiKey: 'AIzaSyBL77duxr08Ow_ArQyqya5EDno5wFI-Dq4',
+    appId: '1:1092747732398:android:6884446adb8848ebf0d43f',
+    messagingSenderId: '1092747732398',
+    projectId: 'kikay-c23f6',
+    storageBucket: 'kikay-c23f6.firebasestorage.app',
+  );
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyDKuZbF7MtcwMn3htNeeuugAZQCxBNBub4',
+    appId: '1:1092747732398:web:dfbe4e207be7be10f0d43f',
+    messagingSenderId: '1092747732398',
+    projectId: 'kikay-c23f6',
+    authDomain: 'kikay-c23f6.firebaseapp.com',
+    storageBucket: 'kikay-c23f6.firebasestorage.app',
+  );
+
+  static const FirebaseOptions macos = FirebaseOptions(
+    apiKey: 'AIzaSyCS2wX9DZl5Fi3sX_8UcNNyPB71OsAlPdU',
+    appId: '1:1092747732398:ios:5698e746f2341e89f0d43f',
+    messagingSenderId: '1092747732398',
+    projectId: 'kikay-c23f6',
+    storageBucket: 'kikay-c23f6.firebasestorage.app',
+    iosBundleId: 'com.example.kikay',
+  );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyCS2wX9DZl5Fi3sX_8UcNNyPB71OsAlPdU',
+    appId: '1:1092747732398:ios:e7ab30d433974cf9f0d43f',
+    messagingSenderId: '1092747732398',
+    projectId: 'kikay-c23f6',
+    storageBucket: 'kikay-c23f6.firebasestorage.app',
+    iosBundleId: 'com.marian.kikayapp',
+  );
+
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyDKuZbF7MtcwMn3htNeeuugAZQCxBNBub4',
+    appId: '1:1092747732398:web:a643f7a2a6f1f1a4f0d43f',
+    messagingSenderId: '1092747732398',
+    projectId: 'kikay-c23f6',
+    authDomain: 'kikay-c23f6.firebaseapp.com',
+    storageBucket: 'kikay-c23f6.firebasestorage.app',
+  );
+
 }
