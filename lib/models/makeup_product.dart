@@ -131,7 +131,7 @@ class MakeupProduct {
       'Undertone': undertone,
       'Skintone': skinTone,
       'Skintone_Category': skinToneCategory,
-      'Images': imageUrl, // Use 'Images' to match the CSV
+      'Images': imageUrl, // Use 'Images' to match the Base.csv
       'Image Link': imageLink,
       'Price': price,
     };

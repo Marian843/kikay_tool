@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -129,6 +130,14 @@ class _ImageResultPageState extends State<ImageResultPage> {
       );
 
       print('Received recommendations: ${recommendations.keys}');
+      print('Recommendations details:');
+      recommendations.forEach((category, products) {
+        print('  $category: ${products.length} products');
+        for (int i = 0; i < min(2, products.length); i++) {
+          print(
+              '    Product $i: ${products[i].brand} ${products[i].productName} (${products[i].makeupType})');
+        }
+      });
 
       setState(() {
         _recommendations = recommendations;

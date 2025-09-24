@@ -50,10 +50,10 @@ class CsvFirestoreService {
   Future<void> uploadAllMakeupData() async {
     try {
       // Upload all CSV files
-      await uploadCsvToFirestore('assets/Base.csv', 'base_makeup');
+      // await uploadCsvToFirestore('assets/Base.csv', 'base_makeup');
       await uploadCsvToFirestore('assets/Blush.csv', 'blush_makeup');
-      await uploadCsvToFirestore('assets/Eye.csv', 'eye_makeup');
-      await uploadCsvToFirestore('assets/Lip.csv', 'lip_makeup');
+      // await uploadCsvToFirestore('assets/Eye.csv', 'eye_makeup');
+      // await uploadCsvToFirestore('assets/Lip.csv', 'lip_makeup');
     } catch (e) {
       rethrow;
     }
