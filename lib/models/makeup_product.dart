@@ -32,7 +32,8 @@ class MakeupProduct {
   factory MakeupProduct.fromFirestore(dynamic data, String id) {
     final Map<String, dynamic> mapData = data as Map<String, dynamic>;
 
-    String? imageUrl = mapData['Image'] ??
+    String? imageUrl = mapData['Images'] ??
+        mapData['Image'] ??
         mapData['image'] ??
         mapData['Image Link'] ??
         mapData['image_link'];
@@ -130,7 +131,7 @@ class MakeupProduct {
       'Undertone': undertone,
       'Skintone': skinTone,
       'Skintone_Category': skinToneCategory,
-      'Image': imageUrl,
+      'Images': imageUrl, // Use 'Images' to match the CSV
       'Image Link': imageLink,
       'Price': price,
     };

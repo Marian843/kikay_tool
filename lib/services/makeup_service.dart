@@ -40,12 +40,14 @@ class MakeupService {
     'highlighter': {
       'collection': blushCollection,
       'type': 'highlighter',
-      'displayName': 'Highlighter',
+      'displayName': 'Blush', // Show in Blush category
+      'originalType': 'highlighter', // Store original type for filtering
     },
     'bronzer': {
       'collection': blushCollection,
       'type': 'bronzer',
-      'displayName': 'Bronzer',
+      'displayName': 'Blush', // Show in Blush category
+      'originalType': 'bronzer', // Store original type for filtering
     },
     'eyeshadow': {
       'collection': eyeCollection,
@@ -106,8 +108,118 @@ class MakeupService {
           .toList();
       print('Selected preferences: $selectedPrefs');
 
-      // Process each selected preference
+      // Special handling for blush category - consolidate blush, highlighter, and bronzer
+      bool hasBlushProducts = preferences['blush'] == true;
+      bool hasHighlighterProducts = preferences['highlighter'] == true;
+      bool hasBronzerProducts = preferences['bronzer'] == true;
+
+      // If any of the blush category products are selected, process them together
+      if (hasBlushProducts || hasHighlighterProducts || hasBronzerProducts) {
+        print('Processing consolidated blush category...');
+
+        List<MakeupProduct> consolidatedBlushProducts = [];
+
+        // Get products for each type in the blush category
+        if (hasBlushProducts) {
+          print('Fetching blush products...');
+          List<MakeupProduct> blushProducts = await _fetchProductsForType(
+            collectionName: blushCollection,
+            makeupType: 'blush',
+            skinTone: skinTone,
+            undertone: undertone,
+            limit: limit, // Get limit for each type
+          );
+          consolidatedBlushProducts.addAll(blushProducts);
+        }
+
+        if (hasHighlighterProducts) {
+          print('Fetching highlighter products...');
+          List<MakeupProduct> highlighterProducts = await _fetchProductsForType(
+            collectionName: blushCollection,
+            makeupType: 'highlighter',
+            skinTone: skinTone,
+            undertone: undertone,
+            limit: limit, // Get limit for each type
+          );
+          consolidatedBlushProducts.addAll(highlighterProducts);
+        }
+
+        if (hasBronzerProducts) {
+          print('Fetching bronzer products...');
+          List<MakeupProduct> bronzerProducts = await _fetchProductsForType(
+            collectionName: blushCollection,
+            makeupType: 'bronzer',
+            skinTone: skinTone,
+            undertone: undertone,
+            limit: limit, // Get limit for each type
+          );
+          consolidatedBlushProducts.addAll(bronzerProducts);
+        }
+
+        // If we don't have enough products, try fallback for each type
+        if (consolidatedBlushProducts.length < limit) {
+          print('Not enough products in blush category, trying fallback...');
+
+          if (hasBlushProducts) {
+            List<MakeupProduct> blushFallback = await _getAnyProductsOfType(
+              collectionName: blushCollection,
+              makeupType: 'blush',
+              limit: limit,
+            );
+            consolidatedBlushProducts.addAll(blushFallback);
+          }
+
+          if (hasHighlighterProducts) {
+            List<MakeupProduct> highlighterFallback =
+                await _getAnyProductsOfType(
+              collectionName: blushCollection,
+              makeupType: 'highlighter',
+              limit: limit,
+            );
+            consolidatedBlushProducts.addAll(highlighterFallback);
+          }
+
+          if (hasBronzerProducts) {
+            List<MakeupProduct> bronzerFallback = await _getAnyProductsOfType(
+              collectionName: blushCollection,
+              makeupType: 'bronzer',
+              limit: limit,
+            );
+            consolidatedBlushProducts.addAll(bronzerFallback);
+          }
+        }
+
+        // Remove duplicates and limit to the desired number
+        List<MakeupProduct> uniqueBlushProducts = [];
+        for (var product in consolidatedBlushProducts) {
+          if (!usedProductIds.contains(product.id)) {
+            uniqueBlushProducts.add(product);
+            usedProductIds.add(product.id);
+
+            // Stop when we have enough products
+            if (uniqueBlushProducts.length >= limit) {
+              break;
+            }
+          }
+        }
+
+        print(
+            'Found ${uniqueBlushProducts.length} unique products for Blush category');
+
+        if (uniqueBlushProducts.isNotEmpty) {
+          recommendations['Blush'] = uniqueBlushProducts;
+        }
+      }
+
+      // Process other selected preferences (excluding blush, highlighter, bronzer)
       for (String prefKey in preferences.keys) {
+        // Skip blush, highlighter, and bronzer as they're processed together above
+        if (prefKey == 'blush' ||
+            prefKey == 'highlighter' ||
+            prefKey == 'bronzer') {
+          continue;
+        }
+
         if (preferences[prefKey] == true) {
           final mapping = preferenceMappings[prefKey];
           if (mapping != null) {
